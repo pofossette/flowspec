@@ -1,0 +1,13 @@
+{
+  "name": "@flowspec/domain",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "FlowSpec domain — schema + markdown parsing",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests" },
+  "dependencies": { "yaml": "^2.8.3", "zod": "^4.1.12" },
+  "devDependencies": { "typescript": "^5.9.3", "vitest": "^3.2.4", "tsx": "^4.19.0" }
+}
