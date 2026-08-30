@@ -1,13 +1,12 @@
+import type { FlowEdge, FlowNode, FlowSpec } from '@flowspec/domain';
+import { flowSpecSchema } from '@flowspec/domain';
 import * as yaml from 'yaml';
-import type { FlowEdge, FlowNode, FlowSpec } from './flow-spec.js';
-import { flowSpecSchema } from './flow-spec.js';
 import {
   edgeToYamlHead,
   nodeToYamlHead,
   parseYamlHead,
   rawBlockToEdge,
   rawBlockToNode,
-  stringifyYamlHead,
 } from './flow-spec-block.js';
 
 // ---------------------------------------------------------------------------
@@ -234,8 +233,19 @@ function serializeFrontmatter(lock: FlowSpecLock): string {
 }
 
 const BLOCK_RE = /^\^\^\^block[ \t]*\r?\n([\s\S]*?)\r?\n\^\^\^[ \t]*$/gm;
+// one-line: ^^^node:metadata:id:kind:x:y:targetid[:label[:status]]  or ^^^edge:source:edgeId:kind:0:0:target[:label]
+const ONE_LINE_RE = /^\^\^\^(?:block-)?(node|edge):([^\n]*)\r?\n([\s\S]*?)\r?\n\^\^\^[ \t]*$/gm;
+// combined for stripping body (both formats)
+const ALL_BLOCK_RE =
+  /^(?:\^\^\^block[ \t]*\r?\n[\s\S]*?\r?\n\^\^\^[ \t]*|\^\^\^(?:block-)?(?:node|edge):[^\n]*\r?\n[\s\S]*?\r?\n\^\^\^[ \t]*)/gm;
 function createBlockRe(): RegExp {
   return new RegExp(BLOCK_RE.source, 'gm');
+}
+function _createOneLineRe(): RegExp {
+  return new RegExp(ONE_LINE_RE.source, 'gm');
+}
+function _createAllBlockRe(): RegExp {
+  return new RegExp(ALL_BLOCK_RE.source, 'gm');
 }
 
 export interface ParsedBlocks {
@@ -243,15 +253,141 @@ export interface ParsedBlocks {
   edges: FlowEdge[];
 }
 
+function _parseOneLineHeader(header: string): {
+  type: 'node' | 'edge';
+  raw: Record<string, unknown>;
+} | null {
+  const trimmed = header.trim();
+  // header is like: metadata:id:kind:x:y:targetid[:label[:status]]
+  // For node: metadata is opaque, target null; for edge: metadata is source
+  const firstColon = trimmed.indexOf(':');
+  if (firstColon === -1) return null;
+  // we already stripped leading type via regex, so header is the rest after "node:" / "edge:"
+  // But our caller passes the part after "node:" inclusive, so header is "metadata:id:kind:x:y:targetid[:label[:status]]"
+  const parts = trimmed.split(':');
+  if (parts.length < 6) return null;
+  // last parts may be label/status containing colons, so we need to isolate
+  // parts[0]=metadata, 1=id, 2=kind, 3=x, 4=y, 5=targetid, 6...=label/status
+  const [metadata, id, kind, xRaw, yRaw, targetid, ...rest] = parts as string[];
+  let label: string | undefined;
+  let status: string | undefined;
+  if (rest.length > 0) {
+    const joined = rest.join(':');
+    // check if last segment is a known status
+    const knownStatus = ['todo', 'doing', 'done', 'blocked', 'idea'];
+    const lastColon = joined.lastIndexOf(':');
+    if (lastColon !== -1) {
+      const maybeStatus = joined.slice(lastColon + 1);
+      if (knownStatus.includes(maybeStatus)) {
+        status = maybeStatus;
+        label = joined.slice(0, lastColon) || undefined;
+      } else {
+        label = joined || undefined;
+      }
+    } else {
+      // single label without colon, check if it's a status alone
+      if (knownStatus.includes(joined)) status = joined;
+      else label = joined || undefined;
+    }
+  }
+  // build raw object compatible with rawBlockToNode/Edge
+  // key is the 6-part composite for reuse
+  const key = `${metadata}:${id}:${kind}:${xRaw}:${yRaw}:${targetid}`;
+  const raw: Record<string, unknown> = { key };
+  if (label) raw.label = label;
+  if (status) raw.status = status;
+  // type will be supplied by caller
+  return { type: 'node', raw } as unknown as {
+    type: 'node' | 'edge';
+    raw: Record<string, unknown>;
+  };
+}
+
 export function parseBlocks(md: string): ParsedBlocks {
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
-  let m: RegExpExecArray | null;
+  // 1) one-line format: ^^^node:... and ^^^edge:...  (also ^^^block-node:... )
+  const lines = md.split('\n');
+  let i = 0;
+  const oneLineRanges: Array<[number, number]> = [];
+  // Build char offset map for range tracking
+  const lineOffsets: number[] = [];
+  let off = 0;
+  for (const line of lines) {
+    lineOffsets.push(off);
+    off += line.length + 1; // +1 for \n
+  }
+  while (i < lines.length) {
+    const line = lines[i] ?? '';
+    const trimmed = line.trim();
+    const mOne = trimmed.match(/^\^\^\^(?:block-)?(node|edge):(.*)$/);
+    if (mOne) {
+      const type = mOne[1] as 'node' | 'edge';
+      const header = (mOne[2] ?? '').trim();
+      const startOffset = lineOffsets[i] ?? 0;
+      // collect body until next ^^^ line
+      let j = i + 1;
+      const bodyLines: string[] = [];
+      while (j < lines.length) {
+        const l = lines[j] ?? '';
+        if (l.trim().startsWith('^^^')) break;
+        bodyLines.push(l);
+        j++;
+      }
+      const body = bodyLines.join('\n').trim();
+      // header is metadata:id:kind:x:y:targetid[:label[:status]]
+      const headerParts = header.split(':');
+      if (headerParts.length >= 6) {
+        const [metadata, id, kind, xRaw, yRaw, targetid, ...rest] = headerParts as string[];
+        const key = `${metadata}:${id}:${kind}:${xRaw}:${yRaw}:${targetid}`;
+        let label: string | undefined;
+        let status: string | undefined;
+        if (rest.length > 0) {
+          const joined = rest.join(':');
+          const knownStatus = ['todo', 'doing', 'done', 'blocked', 'idea'];
+          let maybeLabel = joined;
+          let maybeStatus: string | undefined;
+          const lastColon = joined.lastIndexOf(':');
+          if (lastColon !== -1) {
+            const tail = joined.slice(lastColon + 1);
+            if (knownStatus.includes(tail)) {
+              maybeStatus = tail;
+              maybeLabel = joined.slice(0, lastColon);
+            }
+          } else if (knownStatus.includes(joined)) {
+            maybeStatus = joined;
+            maybeLabel = '';
+          }
+          if (maybeLabel) label = maybeLabel;
+          if (maybeStatus) status = maybeStatus;
+        }
+        const raw: Record<string, unknown> = { key };
+        if (label) raw.label = label;
+        if (status) raw.status = status;
+        if (type === 'node') {
+          const n = rawBlockToNode(raw, body);
+          if (n) nodes.push(n);
+        } else {
+          const e = rawBlockToEdge(raw, body);
+          if (e) edges.push(e);
+        }
+        const endOffset = j < lines.length ? (lineOffsets[j] ?? startOffset) : md.length;
+        oneLineRanges.push([startOffset, endOffset]);
+      }
+      // jump to closing ^^^ line (j) and continue after it
+      i = j + 1;
+      continue;
+    }
+    i++;
+  }
+  // 2) legacy multi-line ^^^block
   const re = createBlockRe();
+  let m: RegExpExecArray | null;
   while ((m = re.exec(md))) {
+    // skip if inside a one-line range (overlap)
+    const start = m.index!;
+    if (oneLineRanges.some(([s, e]) => start >= s && start < e)) continue;
     const inner = m[1] ?? '';
-    // Separator is first occurrence of \r?\n---\r?\n or \r?\n--- at end; handle CRLF
-    // Use regex to find separator so \r\n---\r\n works; fallback to indexOf for bare "---"
     let headRaw: string;
     let body: string;
     const sepRe = /\r?\n---(?:\r?\n|$)/;
@@ -261,7 +397,6 @@ export function parseBlocks(md: string): ParsedBlocks {
       const sepLen = sepMatch[0].length;
       headRaw = inner.slice(0, idx);
       body = inner.slice(idx + sepLen);
-      // Note: content containing isolated `---` line remains ambiguous — documented limitation
     } else if (inner.startsWith('---')) {
       headRaw = '';
       body = inner.slice(3);
@@ -289,23 +424,45 @@ function serializeBlocks(spec: FlowSpec): string[] {
   const lines: string[] = [];
   for (const n of spec.nodes) {
     const head = nodeToYamlHead(n);
-    const y = stringifyYamlHead(head);
-    lines.push('^^^block');
-    lines.push(y);
-    lines.push('---');
+    // one-line: ^^^node:metadata:id:kind:x:y:targetid[:label[:status]]
+    const key = String(head.key);
+    const label = String(head.label);
+    const status = head.status ? `:${String(head.status)}` : '';
+    // key already is metadata:id:kind:x:y:targetid, label may contain ':', keep as is
+    lines.push(`^^^node:${key}:${label}${status}`);
     if (n.content) lines.push(n.content);
     lines.push('^^^');
   }
   for (const e of spec.edges) {
     const head = edgeToYamlHead(e);
-    const y = stringifyYamlHead(head);
-    lines.push('^^^block');
-    lines.push(y);
-    lines.push('---');
+    const key = String(head.key);
+    const labelPart = head.label ? `:${String(head.label)}` : '';
+    lines.push(`^^^edge:${key}${labelPart}`);
     if (e.content) lines.push(e.content);
     lines.push('^^^');
   }
   return lines;
+}
+
+function stripAllBlocks(md: string): string {
+  const lines = md.split('\n');
+  const out: string[] = [];
+  let inBlock = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const isStart =
+      trimmed.startsWith('^^^block') || /^\^\^\^(?:block-)?(?:node|edge):/.test(trimmed);
+    if (!inBlock && isStart) {
+      inBlock = true;
+      continue;
+    }
+    if (inBlock && trimmed === '^^^') {
+      inBlock = false;
+      continue;
+    }
+    if (!inBlock) out.push(line);
+  }
+  return out.join('\n');
 }
 
 /**
@@ -315,8 +472,8 @@ function serializeBlocks(spec: FlowSpec): string[] {
  */
 export function extractBodyMarkdown(md: string): string {
   const { remaining } = parseFrontmatter(md);
-  // remove blocks to get non-block content — use fresh regex to avoid stale lastIndex
-  const withoutBlocks = remaining.replace(createBlockRe(), '').trim();
+  // remove blocks to get non-block content — line-based handles both ^^^block and ^^^node/^ ^edge
+  const withoutBlocks = stripAllBlocks(remaining).trim();
   // withoutBlocks still contains title + description blockquotes + body
   // We need to strip title and description blockquotes
   const lines = withoutBlocks.split('\n');
@@ -360,9 +517,9 @@ export function extractBodyMarkdown(md: string): string {
 }
 
 export function stripBlocks(md: string): string {
-  // Remove frontmatter + blocks, keep header + body — fresh regex avoids shared lastIndex
+  // Remove frontmatter + blocks, keep header + body — line-based handles both formats
   const { remaining } = parseFrontmatter(md);
-  const stripped = remaining.replace(createBlockRe(), '');
+  const stripped = stripAllBlocks(remaining);
   // Collapse multiple blank lines to at most 2
   return `${stripped.replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
@@ -590,8 +747,8 @@ function parseLegacyXml(md: string): FlowSpec | null {
 }
 
 export function parseFlowSpecFromMarkdown(md: string): ParsedFlowSpec | null {
-  // First try new block syntax if any ^^^block present (anchored)
-  const hasBlocks = BLOCK_DETECT_RE.test(md);
+  // First try new block syntax if any ^^^block / ^^^node / ^^^edge present (anchored)
+  const hasBlocks = BLOCK_DETECT_RE.test(md) || ONE_LINE_DETECT_RE.test(md);
   const { lock, remaining } = parseFrontmatter(md);
 
   // Title / description extraction from remaining (without frontmatter)
@@ -619,7 +776,7 @@ export function parseFlowSpecFromMarkdown(md: string): ParsedFlowSpec | null {
       } else if (
         line.trim() === '' ||
         line.startsWith('## ') ||
-        line.startsWith('^^^block') ||
+        line.startsWith('^^^') ||
         line.startsWith('<flow-spec')
       ) {
         break;
@@ -690,9 +847,11 @@ export function parseFlowSpecFromMarkdown(md: string): ParsedFlowSpec | null {
 
 // Convenience: detect format — anchored to avoid false positive inside fenced code block
 const BLOCK_DETECT_RE = /(?:^|\n)\^\^\^block(?:\s|$)/;
+const ONE_LINE_DETECT_RE = /(?:^|\n)\^\^\^(?:block-)?(?:node|edge):/;
 export function isMarkdownFlowSpec(content: string): boolean {
   return (
     BLOCK_DETECT_RE.test(content) ||
+    ONE_LINE_DETECT_RE.test(content) ||
     (content.includes('<flow-spec') && content.includes('</flow-spec>'))
   );
 }

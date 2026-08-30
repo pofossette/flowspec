@@ -1,9 +1,8 @@
 {
-  "name": "@flowspec/domain",
+  "name": "@flowspec/parser",
   "version": "0.1.0",
-  "private": false,
   "type": "module",
-  "description": "FlowSpec domain — schema and types (pure, no parser)",
+  "description": "FlowSpec markdown parser — block syntax and serialization",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -18,11 +17,12 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@flowspec/domain": "workspace:*",
+    "yaml": "^2.8.3",
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "tsx": "^4.19.0"
+    "vitest": "^3.2.4"
   }
 }

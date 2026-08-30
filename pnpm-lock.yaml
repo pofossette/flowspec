@@ -29,6 +29,9 @@ importers:
       '@flowspec/lock':
         specifier: workspace:*
         version: link:../../packages/lock
+      '@flowspec/parser':
+        specifier: workspace:*
+        version: link:../../packages/parser
       '@flowspec/registry':
         specifier: workspace:*
         version: link:../../packages/registry
@@ -158,9 +161,6 @@ importers:
 
   packages/domain:
     dependencies:
-      yaml:
-        specifier: ^2.8.3
-        version: 2.9.0
       zod:
         specifier: ^4.1.12
         version: 4.5.4
@@ -180,6 +180,9 @@ importers:
       '@flowspec/domain':
         specifier: workspace:*
         version: link:../domain
+      '@flowspec/parser':
+        specifier: workspace:*
+        version: link:../parser
       yaml:
         specifier: ^2.8.3
         version: 2.9.0
@@ -197,6 +200,25 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.12)(yaml@2.9.0)
 
+  packages/parser:
+    dependencies:
+      '@flowspec/domain':
+        specifier: workspace:*
+        version: link:../domain
+      yaml:
+        specifier: ^2.8.3
+        version: 2.9.0
+      zod:
+        specifier: ^4.1.12
+        version: 4.5.4
+    devDependencies:
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.12)(yaml@2.9.0)
+
   packages/registry:
     dependencies:
       '@flowspec/domain':
@@ -205,6 +227,9 @@ importers:
       '@flowspec/lock':
         specifier: workspace:*
         version: link:../lock
+      '@flowspec/parser':
+        specifier: workspace:*
+        version: link:../parser
       yaml:
         specifier: ^2.8.3
         version: 2.9.0
@@ -236,6 +261,9 @@ importers:
       '@flowspec/lock':
         specifier: workspace:*
         version: link:../lock
+      '@flowspec/parser':
+        specifier: workspace:*
+        version: link:../parser
       '@flowspec/registry':
         specifier: workspace:*
         version: link:../registry

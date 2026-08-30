@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { flowSpecSchema, parseFlowSpecFromMarkdown } from '@flowspec/domain';
+import { flowSpecSchema } from '@flowspec/domain';
+import { parseFlowSpecFromMarkdown } from '@flowspec/parser';
 import {
   addEntry,
   ensureRegistryDir,

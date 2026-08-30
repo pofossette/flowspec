@@ -26,15 +26,16 @@
     "dev": "tsx src/run.ts --help"
   },
   "dependencies": {
+    "@flowspec/ai": "workspace:*",
     "@flowspec/domain": "workspace:*",
     "@flowspec/lock": "workspace:*",
+    "@flowspec/parser": "workspace:*",
     "@flowspec/registry": "workspace:*",
     "@flowspec/server": "workspace:*",
     "@flowspec/web": "workspace:*",
-    "@flowspec/ai": "workspace:*",
     "commander": "^14.0.1",
-    "zod": "^4.1.12",
-    "yaml": "^2.8.3"
+    "yaml": "^2.8.3",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

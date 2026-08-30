@@ -4,7 +4,8 @@
 
 ## 结构
 
-- `packages/domain` — FlowSpec schema 与 markdown 解析
+- `packages/domain` — FlowSpec 纯 schema 与类型（无解析）
+- `packages/parser` — 统一 Markdown 解析器（`flow-spec-block` / `flow-spec-md`，`^^^node:`/`^^^edge:` 一行式 `metadata:id:type:x:y:targetid`）
 - `packages/lock` — 文件锁与 frontmatter
 - `packages/registry` — mark/preview 注册表与同步
 - `packages/store` — Zustand 状态管理
@@ -13,7 +14,7 @@
 - `packages/server` — Fastify 预览服务与路由（@flowspec/server）
 - `apps/cli` — 独立 CLI（bin `flowspec`）
 - `apps/web` — Vite + React19 + BlockNote 前端（@flowspec/web-app，原 `apps/flow-preview`）
-- `flowspec/` — 示例文档（roadmap/demo/next-stage/showcase/complex-demo）
+- `flowspec/` — 示例文档（minimal/demo/showcase/complex-demo）
 
 ## 快速开始
 

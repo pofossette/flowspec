@@ -11,11 +11,26 @@
   },
   "include": ["src/**/*"],
   "references": [
-    { "path": "../../packages/domain" },
-    { "path": "../../packages/lock" },
-    { "path": "../../packages/registry" },
-    { "path": "../../packages/server" },
-    { "path": "../../packages/web" },
-    { "path": "../../packages/ai" }
+    {
+      "path": "../../packages/domain"
+    },
+    {
+      "path": "../../packages/parser"
+    },
+    {
+      "path": "../../packages/lock"
+    },
+    {
+      "path": "../../packages/registry"
+    },
+    {
+      "path": "../../packages/server"
+    },
+    {
+      "path": "../../packages/web"
+    },
+    {
+      "path": "../../packages/ai"
+    }
   ]
 }

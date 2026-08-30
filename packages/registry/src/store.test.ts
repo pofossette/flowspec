@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { flowSpecExample, serializeFlowSpecToMarkdown } from '@flowspec/domain';
+import { flowSpecExample } from '@flowspec/domain';
+import { serializeFlowSpecToMarkdown } from '@flowspec/parser';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ensureRegistryDir, markPath, previewPath, resolveRegistryDir } from './paths.js';
 import {

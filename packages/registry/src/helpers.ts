@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { flowSpecSchema, isMarkdownFlowSpec, parseFlowSpecFromMarkdown } from '@flowspec/domain';
+import { flowSpecSchema } from '@flowspec/domain';
 import { atomicWriteFileSync } from '@flowspec/lock';
+import { isMarkdownFlowSpec, parseFlowSpecFromMarkdown } from '@flowspec/parser';
 import { createEmptyRegistry, nowIso, type Registry, registrySchema } from './types.js';
 
 export function readRegistryFile(filePath: string): Registry {

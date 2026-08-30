@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { stripBlocks } from '@flowspec/domain';
 import { readLockFromMarkdown, writeLockToMarkdown } from '@flowspec/lock';
+import { stripBlocks } from '@flowspec/parser';
 import { ensureRegistryDir, loadMark, loadPreview, removeEntry } from '@flowspec/registry';
 import type { Command } from 'commander';
 

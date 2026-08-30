@@ -9,5 +9,18 @@
     "noUnusedLocals": false
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../domain" }, { "path": "../lock" }, { "path": "../registry" }]
+  "references": [
+    {
+      "path": "../domain"
+    },
+    {
+      "path": "../lock"
+    },
+    {
+      "path": "../registry"
+    },
+    {
+      "path": "../parser"
+    }
+  ]
 }

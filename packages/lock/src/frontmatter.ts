@@ -1,4 +1,4 @@
-import type { FlowSpecLock } from '@flowspec/domain';
+import type { FlowSpecLock } from '@flowspec/parser';
 import * as yaml from 'yaml';
 
 export function readLockFromMarkdown(content: string): FlowSpecLock | null {
@@ -13,7 +13,6 @@ export function readLockFromMarkdown(content: string): FlowSpecLock | null {
   } catch {
     return null;
   }
-  if (!('locked' in parsed)) return null;
   const lockedRaw = parsed.locked;
   const locked = lockedRaw === true || lockedRaw === 'true';
   const lock: FlowSpecLock = {

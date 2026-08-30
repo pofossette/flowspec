@@ -1,12 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { safeParseFlowSpec } from '@flowspec/domain';
 import {
   isMarkdownFlowSpec,
   parseFlowSpecFromMarkdown,
-  safeParseFlowSpec,
   serializeFlowSpecToMarkdown,
-} from '@flowspec/domain';
+} from '@flowspec/parser';
 import { ensureRegistryDir, resolveRegistryDir } from '@flowspec/registry';
 
 export function pidFilePath(dir: string): string {

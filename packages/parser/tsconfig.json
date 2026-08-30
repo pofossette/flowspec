@@ -9,15 +9,5 @@
     "noUnusedParameters": false
   },
   "include": ["src/**/*"],
-  "references": [
-    {
-      "path": "../domain"
-    },
-    {
-      "path": "../lock"
-    },
-    {
-      "path": "../parser"
-    }
-  ]
+  "references": [{ "path": "../domain" }]
 }

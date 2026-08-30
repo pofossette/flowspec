@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@flowspec/domain": "workspace:*",
+    "@flowspec/parser": "workspace:*",
     "yaml": "^2.8.3",
     "zod": "^4.1.12"
   },

@@ -1,5 +1,5 @@
+import type { FlowEdge, FlowNode } from '@flowspec/domain';
 import * as yaml from 'yaml';
-import type { FlowEdge, FlowNode } from './flow-spec.js';
 
 export type BlockType = 'node' | 'edge';
 
@@ -34,18 +34,30 @@ function toNumberVal(v: unknown): number | undefined {
   return n;
 }
 
-function parseCompositeKey(rawVal: unknown):
-  | { metadata: string; id: string; type: string; x?: number; y?: number; targetid?: string }
-  | null {
+function parseCompositeKey(rawVal: unknown): {
+  metadata: string;
+  id: string;
+  type: string;
+  x?: number;
+  y?: number;
+  targetid?: string;
+} | null {
   const s = toStringVal(rawVal);
-  if (!s || !s.includes(':')) return null;
+  if (!s?.includes(':')) return null;
   const parts = s.split(':');
   // expect 6 parts metadata:id:type:x:y:targetid (targetid may contain : if metadata has, so last is targetid)
   if (parts.length < 6) return null;
   // join extra metadata colons if any: metadata may contain :? we take first as metadata, last 5 as id,type,x,y,targetid
   // Simpler: exactly 6
   if (parts.length !== 6) return null;
-  const [metadata, id, type, xRaw, yRaw, targetid] = parts as [string, string, string, string, string, string];
+  const [metadata, id, type, xRaw, yRaw, targetid] = parts as [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ];
   const x = xRaw !== 'null' && xRaw !== '' ? Number(xRaw) : undefined;
   const y = yRaw !== 'null' && yRaw !== '' ? Number(yRaw) : undefined;
   return {
@@ -70,14 +82,16 @@ export function rawBlockToNode(raw: Record<string, unknown>, content: string): F
     metadata = composite.metadata;
     id = composite.id;
     kind = (composite.type as FlowNode['kind']) ?? 'branch';
-    if (composite.x !== undefined && composite.y !== undefined) position = { x: composite.x, y: composite.y };
+    if (composite.x !== undefined && composite.y !== undefined)
+      position = { x: composite.x, y: composite.y };
   } else {
     // fallback to legacy fields (or composite with target? treat as legacy node)
     if (composite) {
       metadata = composite.metadata;
       id = composite.id;
       kind = (composite.type as FlowNode['kind']) ?? 'branch';
-      if (composite.x !== undefined && composite.y !== undefined) position = { x: composite.x, y: composite.y };
+      if (composite.x !== undefined && composite.y !== undefined)
+        position = { x: composite.x, y: composite.y };
     } else {
       id = toStringVal(raw.id ?? raw.key);
       kind = (toStringVal(raw.kind) as FlowNode['kind']) ?? 'branch';
@@ -218,7 +232,9 @@ export function nodeToYamlHead(node: FlowNode): Record<string, unknown> {
   const y = node.position?.y;
   const xStr = x !== undefined ? String(x) : 'null';
   const yStr = y !== undefined ? String(y) : 'null';
-  const metadata = (node.data as Record<string, unknown> | undefined)?.metadata as string | undefined;
+  const metadata = (node.data as Record<string, unknown> | undefined)?.metadata as
+    | string
+    | undefined;
   const meta = metadata ?? node.id;
   const key = `${meta}:${node.id}:${node.kind}:${xStr}:${yStr}:null`;
   const out: Record<string, unknown> = {

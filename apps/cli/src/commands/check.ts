@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { flowSpecSchema, parseFlowSpecFromMarkdown } from '@flowspec/domain';
+import { flowSpecSchema } from '@flowspec/domain';
 import { resolveSpecPath } from '@flowspec/lock';
+import { parseFlowSpecFromMarkdown } from '@flowspec/parser';
 import { ensureRegistryDir, loadMark, loadPreview } from '@flowspec/registry';
 import type { Command } from 'commander';
 import { toRepoRelative } from './shared.js';

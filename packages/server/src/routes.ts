@@ -38,12 +38,7 @@ export type RouteDef<C = RouteContext, D = unknown> = {
 };
 
 import * as fs from 'node:fs';
-import {
-  extractBodyMarkdown,
-  flowSpecSchema,
-  isMarkdownFlowSpec,
-  parseFlowSpecFromMarkdown,
-} from '@flowspec/domain';
+import { flowSpecSchema } from '@flowspec/domain';
 import {
   acquireLock,
   getEmptySpecForPureMarkdown,
@@ -57,6 +52,11 @@ import {
   resolveSpecPath,
   saveSpecRaw,
 } from '@flowspec/lock';
+import {
+  extractBodyMarkdown,
+  isMarkdownFlowSpec,
+  parseFlowSpecFromMarkdown,
+} from '@flowspec/parser';
 
 export type FlowSpecRouteDeps = {
   flowspecDir?: string;

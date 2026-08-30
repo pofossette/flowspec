@@ -1,12 +1,9 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import {
-  flowSpecExample,
-  parseFlowSpecFromMarkdown,
-  serializeFlowSpecToMarkdown,
-} from '@flowspec/domain';
+import { flowSpecExample } from '@flowspec/domain';
 import { readLockFromMarkdown } from '@flowspec/lock';
+import { parseFlowSpecFromMarkdown, serializeFlowSpecToMarkdown } from '@flowspec/parser';
 import { loadMark, loadPreview } from '@flowspec/registry';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -270,11 +267,11 @@ describe('flow remove', () => {
     const md = mkValidMd({ title: 'Demo MD' });
     fs.writeFileSync(file, md, 'utf-8');
     handleAddFlowSpec(file, { root });
-    expect(fs.readFileSync(file, 'utf-8')).toContain('^^^block');
+    expect(fs.readFileSync(file, 'utf-8')).toContain('^^^node:');
     handleRemoveFlowSpec('demo', { root, deleteBlocks: true });
     const after = fs.readFileSync(file, 'utf-8');
-    expect(after).not.toContain('^^^block');
-    expect(after).toContain('locked: false');
+    expect(after).not.toContain('^^^');
+    expect(after).toContain('title: Demo MD');
     expect(after).toContain('# Demo MD');
     const lock = readLockFromMarkdown(after);
     expect(lock?.locked).toBe(false);
@@ -306,7 +303,7 @@ describe('flow remove', () => {
     fs.writeFileSync(file, mkValidMd(), 'utf-8');
     handleAddFlowSpec(file, { root });
     handleRemoveFlowSpec('demo', { root, deleteBlocks: false });
-    expect(fs.readFileSync(file, 'utf-8')).toContain('^^^block');
+    expect(fs.readFileSync(file, 'utf-8')).toContain('^^^node:');
   });
 });
 

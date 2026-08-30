@@ -12,7 +12,7 @@
     "dev": "pnpm --filter @flowspec/web-app dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm --filter @flowspec/domain test && pnpm --filter @flowspec/registry test && pnpm --filter @flowspec/lock test && pnpm --filter flowspec test",
+    "test": "pnpm --filter @flowspec/domain test && pnpm --filter @flowspec/parser test && pnpm --filter @flowspec/registry test && pnpm --filter @flowspec/lock test && pnpm --filter flowspec test",
     "cli": "pnpm --filter flowspec exec node ./dist/run.js",
     "serve": "pnpm --filter flowspec exec node ./dist/run.js flow serve",
     "preview:build": "pnpm --filter @flowspec/web-app build",

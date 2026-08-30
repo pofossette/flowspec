@@ -71,8 +71,10 @@ describe('file-lock', () => {
     expect(fs.existsSync(p)).toBe(true);
     expect(p.endsWith('.md')).toBe(true);
     const content = fs.readFileSync(p, 'utf-8');
-    // new block syntax uses frontmatter + ^^^block, legacy XML still accepted via isMarkdownFlowSpec
-    expect(content.includes('^^^block') || content.includes('<flow-spec')).toBe(true);
+    // new one-line syntax ^^^node:/^^^edge: (also legacy ^^^block)
+    expect(
+      content.includes('^^^node:') || content.includes('^^^edge:') || content.includes('^^^block')
+    ).toBe(true);
     expect(content).toContain('#');
     expect(content).toContain('---');
     const loaded = loadSpecRaw('demo', dir);

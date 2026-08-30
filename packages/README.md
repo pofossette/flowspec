@@ -1,6 +1,7 @@
 # Packages
 
-- **domain** (`@flowspec/domain`) — FlowSpec schema 与 markdown 解析
+- **domain** (`@flowspec/domain`) — 纯 schema 与类型
+- **parser** (`@flowspec/parser`) — 统一解析器（block 一行式 `metadata:id:type:x:y:targetid`，`^^^node:`/`^^^edge:`）
 - **lock** (`@flowspec/lock`) — 文件锁与 frontmatter
 - **registry** (`@flowspec/registry`) — mark/preview 注册表
 - **store** (`@flowspec/store`) — Zustand 状态

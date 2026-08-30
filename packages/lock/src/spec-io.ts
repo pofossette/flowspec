@@ -1,13 +1,13 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { flowSpecSchema } from '@flowspec/domain';
 import {
   extractBodyMarkdown,
   type FlowSpecLock,
-  flowSpecSchema,
   isMarkdownFlowSpec,
   parseFlowSpecFromMarkdown,
   serializeFlowSpecToMarkdown,
-} from '@flowspec/domain';
+} from '@flowspec/parser';
 import { readLockFromMarkdown } from './frontmatter.js';
 import { atomicWriteFileSync } from './helpers.js';
 import { resolveSpecPath } from './paths.js';

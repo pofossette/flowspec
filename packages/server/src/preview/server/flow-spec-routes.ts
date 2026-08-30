@@ -1,11 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import {
-  extractBodyMarkdown,
-  flowSpecSchema,
-  isMarkdownFlowSpec,
-  parseFlowSpecFromMarkdown,
-} from '@flowspec/domain';
+import { flowSpecSchema } from '@flowspec/domain';
 import {
   acquireLock,
   getEmptySpecForPureMarkdown,
@@ -19,6 +14,11 @@ import {
   resolveSpecPath,
   saveSpecRaw,
 } from '@flowspec/lock';
+import {
+  extractBodyMarkdown,
+  isMarkdownFlowSpec,
+  parseFlowSpecFromMarkdown,
+} from '@flowspec/parser';
 import type { FastifyInstance } from 'fastify';
 import {
   broadcast,
