@@ -367,7 +367,19 @@ describe('flow-spec markdown block syntax', () => {
   });
 
   it('parses old demo.md still readable', () => {
-    const md = readFileSync(resolve(process.cwd(), 'flowspec/demo.md'), 'utf8');
+    const candidates = [
+      resolve(process.cwd(), 'flowspec/demo.md'),
+      resolve(process.cwd(), '../../flowspec/demo.md'),
+      resolve(process.cwd(), '../flowspec/demo.md'),
+    ];
+    let md: string | null = null;
+    for (const p of candidates) {
+      try {
+        md = readFileSync(p, 'utf8');
+        break;
+      } catch {}
+    }
+    if (!md) throw new Error('flowspec/demo.md not found in any candidate');
     const parsed = parseFlowSpecFromMarkdown(md);
     expect(parsed).not.toBeNull();
     expect(parsed!.title).toBe('Demo MD');
