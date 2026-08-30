@@ -34,19 +34,66 @@ function toNumberVal(v: unknown): number | undefined {
   return n;
 }
 
+function parseCompositeKey(rawVal: unknown):
+  | { metadata: string; id: string; type: string; x?: number; y?: number; targetid?: string }
+  | null {
+  const s = toStringVal(rawVal);
+  if (!s || !s.includes(':')) return null;
+  const parts = s.split(':');
+  // expect 6 parts metadata:id:type:x:y:targetid (targetid may contain : if metadata has, so last is targetid)
+  if (parts.length < 6) return null;
+  // join extra metadata colons if any: metadata may contain :? we take first as metadata, last 5 as id,type,x,y,targetid
+  // Simpler: exactly 6
+  if (parts.length !== 6) return null;
+  const [metadata, id, type, xRaw, yRaw, targetid] = parts as [string, string, string, string, string, string];
+  const x = xRaw !== 'null' && xRaw !== '' ? Number(xRaw) : undefined;
+  const y = yRaw !== 'null' && yRaw !== '' ? Number(yRaw) : undefined;
+  return {
+    metadata,
+    id,
+    type,
+    x: x !== undefined && !Number.isNaN(x) ? x : undefined,
+    y: y !== undefined && !Number.isNaN(y) ? y : undefined,
+    targetid: targetid === 'null' ? undefined : targetid,
+  };
+}
+
 export function rawBlockToNode(raw: Record<string, unknown>, content: string): FlowNode | null {
-  const id = toStringVal(raw.id);
-  const label = toStringVal(raw.label);
+  // new key: metadata:id:type:x:y:targetid  (preferred, id field deprecated)
+  const composite = parseCompositeKey(raw.key ?? raw.id);
+  let id: string | undefined;
+  let kind: FlowNode['kind'];
+  let position: { x: number; y: number } | undefined;
+  let metadata: string | undefined;
+  if (composite && composite.targetid === undefined) {
+    // node: target null
+    metadata = composite.metadata;
+    id = composite.id;
+    kind = (composite.type as FlowNode['kind']) ?? 'branch';
+    if (composite.x !== undefined && composite.y !== undefined) position = { x: composite.x, y: composite.y };
+  } else {
+    // fallback to legacy fields (or composite with target? treat as legacy node)
+    if (composite) {
+      metadata = composite.metadata;
+      id = composite.id;
+      kind = (composite.type as FlowNode['kind']) ?? 'branch';
+      if (composite.x !== undefined && composite.y !== undefined) position = { x: composite.x, y: composite.y };
+    } else {
+      id = toStringVal(raw.id ?? raw.key);
+      kind = (toStringVal(raw.kind) as FlowNode['kind']) ?? 'branch';
+      const x = toNumberVal(raw.x);
+      const y = toNumberVal(raw.y);
+      position = x !== undefined && y !== undefined ? { x, y } : undefined;
+    }
+  }
+  // label priority: explicit label > metadata
+  const label = toStringVal(raw.label) ?? metadata;
   if (!id || !label) return null;
-  const kind = (toStringVal(raw.kind) as FlowNode['kind']) ?? 'branch';
   const status = toStringVal(raw.status) as FlowNode['status'] | undefined;
   const collapsedRaw = raw.collapsed;
   const collapsed = collapsedRaw === true || collapsedRaw === 'true' ? true : undefined;
 
-  const x = toNumberVal(raw.x);
-  const y = toNumberVal(raw.y);
-  const position = x !== undefined && y !== undefined ? { x, y } : undefined;
-
+  // legacy style ignored for minimal syntax, but keep if present
   const color = toStringVal(raw.color);
   const bgColor = toStringVal(raw.bgColor);
   const icon = toStringVal(raw.icon);
@@ -86,6 +133,9 @@ export function rawBlockToNode(raw: Record<string, unknown>, content: string): F
       }
     }
   }
+  if (metadata && metadata !== id) {
+    data = { ...(data ?? {}), metadata };
+  }
 
   const trimmedContent = content.trim();
   const node: FlowNode = {
@@ -103,12 +153,37 @@ export function rawBlockToNode(raw: Record<string, unknown>, content: string): F
 }
 
 export function rawBlockToEdge(raw: Record<string, unknown>, content: string): FlowEdge | null {
-  const id = toStringVal(raw.id);
-  const source = toStringVal(raw.source);
-  const target = toStringVal(raw.target);
+  const composite = parseCompositeKey(raw.key ?? raw.id);
+  let id: string | undefined;
+  let source: string | undefined;
+  let target: string | undefined;
+  let kind: FlowEdge['kind'];
+  let label: string | undefined;
+  if (composite && composite.targetid !== undefined) {
+    // edge: metadata is source, id is edgeId, type is kind, targetid is target
+    // also support metadata as label if needed — but for edge we treat metadata as source
+    source = composite.metadata;
+    id = composite.id;
+    kind = (composite.type as FlowEdge['kind']) ?? 'hierarchical';
+    target = composite.targetid;
+    label = toStringVal(raw.label);
+    // x,y ignored for edge (reserved)
+  } else {
+    id = composite ? composite.id : toStringVal(raw.id ?? raw.key);
+    source = toStringVal(raw.source);
+    target = composite ? composite.targetid : toStringVal(raw.target);
+    // if composite targetid missing, fallback
+    if (!target && composite) target = composite.targetid;
+    if (composite) {
+      kind = (composite.type as FlowEdge['kind']) ?? 'hierarchical';
+    } else {
+      kind = (toStringVal(raw.kind) as FlowEdge['kind']) ?? 'hierarchical';
+    }
+    label = toStringVal(raw.label);
+    // if label missing and composite metadata available, use it
+    if (!label && composite) label = composite.metadata !== id ? composite.metadata : undefined;
+  }
   if (!id || !source || !target) return null;
-  const kind = (toStringVal(raw.kind) as FlowEdge['kind']) ?? 'hierarchical';
-  const label = toStringVal(raw.label);
   const directedRaw = raw.directed;
   const directed = !(directedRaw === false || directedRaw === 'false');
   const color = toStringVal(raw.color);
@@ -138,41 +213,39 @@ export function rawBlockToEdge(raw: Record<string, unknown>, content: string): F
 }
 
 export function nodeToYamlHead(node: FlowNode): Record<string, unknown> {
+  // minimal key: metadata:id:type:x:y:targetid  (target null for node)
+  const x = node.position?.x;
+  const y = node.position?.y;
+  const xStr = x !== undefined ? String(x) : 'null';
+  const yStr = y !== undefined ? String(y) : 'null';
+  const metadata = (node.data as Record<string, unknown> | undefined)?.metadata as string | undefined;
+  const meta = metadata ?? node.id;
+  const key = `${meta}:${node.id}:${node.kind}:${xStr}:${yStr}:null`;
   const out: Record<string, unknown> = {
     type: 'node',
-    id: node.id,
-    kind: node.kind,
+    key,
     label: node.label,
   };
   if (node.status) out.status = node.status;
   if (node.collapsed) out.collapsed = true;
-  if (node.position) {
-    out.x = node.position.x;
-    out.y = node.position.y;
-  }
-  if (node.style?.color) out.color = node.style.color;
-  if (node.style?.bgColor) out.bgColor = node.style.bgColor;
-  if (node.style?.icon) out.icon = node.style.icon;
+  // style/color stripped for minimal syntax; keep data except metadata
   if (node.data && Object.keys(node.data).length > 0) {
-    out.data = node.data;
+    const { metadata: _m, ...rest } = node.data as Record<string, unknown>;
+    if (Object.keys(rest).length > 0) out.data = rest;
   }
   return out;
 }
 
 export function edgeToYamlHead(edge: FlowEdge): Record<string, unknown> {
+  // minimal key: metadata(source):id:type:x:y:targetid
+  const key = `${edge.source}:${edge.id}:${edge.kind}:0:0:${edge.target}`;
   const out: Record<string, unknown> = {
     type: 'edge',
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    kind: edge.kind,
+    key,
   };
   if (edge.label) out.label = edge.label;
   if (edge.directed === false) out.directed = false;
-  if (edge.style?.color) out.color = edge.style.color;
-  if (edge.style?.width !== undefined) out.width = edge.style.width;
-  if (edge.style?.dash) out.dash = edge.style.dash;
-  // content is not in YAML, it's markdown body
+  // style stripped for minimal
   return out;
 }
 

@@ -215,47 +215,20 @@ function parseFrontmatter(md: string): {
   const locked = lockedRaw === true || lockedRaw === 'true';
   const lock: FlowSpecLock = {
     locked,
-    ...(typeof parsed.holder === 'string' && parsed.holder ? { holder: parsed.holder } : {}),
-    ...(typeof parsed.note === 'string' && parsed.note ? { note: parsed.note } : {}),
-    ...(typeof parsed.lockReason === 'string' && parsed.lockReason
-      ? { lockReason: parsed.lockReason }
-      : {}),
-    ...(typeof parsed.acquiredAt === 'string' && parsed.acquiredAt
-      ? { acquiredAt: parsed.acquiredAt }
-      : {}),
-    ...(typeof parsed.expiresAt === 'string' && parsed.expiresAt
-      ? { expiresAt: parsed.expiresAt }
-      : {}),
-    ...(typeof parsed.version === 'string' && parsed.version ? { version: parsed.version } : {}),
-    ...(typeof parsed.rootId === 'string' && parsed.rootId ? { rootId: parsed.rootId } : {}),
     ...(typeof parsed.title === 'string' && parsed.title ? { title: parsed.title } : {}),
-    ...(typeof parsed.createdAt === 'string' && parsed.createdAt
-      ? { createdAt: parsed.createdAt }
-      : {}),
-    ...(typeof parsed.updatedAt === 'string' && parsed.updatedAt
-      ? { updatedAt: parsed.updatedAt }
-      : {}),
+    ...(typeof parsed.rootId === 'string' && parsed.rootId ? { rootId: parsed.rootId } : {}),
+    // keep minimal; version/timestamps dropped, keep for compat if present
+    ...(typeof parsed.version === 'string' && parsed.version ? { version: parsed.version } : {}),
   };
-  // ensure version default
-  if (!lock.version) lock.version = '1.0.0';
   const remaining = md.slice(match[0]?.length);
   return { lock, remaining, rawFrontmatter: parsed };
 }
 
 function serializeFrontmatter(lock: FlowSpecLock): string {
-  const obj: Record<string, unknown> = {
-    locked: lock.locked,
-  };
-  if (lock.holder) obj.holder = lock.holder;
-  if (lock.note) obj.note = lock.note;
-  if (lock.lockReason) obj.lockReason = lock.lockReason;
-  if (lock.acquiredAt) obj.acquiredAt = lock.acquiredAt;
-  if (lock.expiresAt) obj.expiresAt = lock.expiresAt;
-  if (lock.version) obj.version = lock.version;
-  if (lock.rootId) obj.rootId = lock.rootId;
+  const obj: Record<string, unknown> = {};
   if (lock.title) obj.title = lock.title;
-  if (lock.createdAt) obj.createdAt = lock.createdAt;
-  if (lock.updatedAt) obj.updatedAt = lock.updatedAt;
+  if (lock.rootId) obj.rootId = lock.rootId;
+  if (lock.locked) obj.locked = true;
   const y = yaml.stringify(obj).trimEnd();
   return `---\n${y}\n---\n`;
 }
@@ -498,20 +471,10 @@ export function serializeFlowSpecToMarkdown(
 ): string {
   const options: SerializeOptions =
     typeof opts === 'string' ? { bodyMarkdown: opts } : (opts ?? {});
-  const version = spec.version ?? '1.0.0';
-  const updated = spec.updatedAt ?? formatIsoNow();
   const lock: FlowSpecLock = {
     locked: options.lock?.locked ?? false,
-    ...(options.lock?.holder ? { holder: options.lock.holder } : {}),
-    ...(options.lock?.note ? { note: options.lock.note } : {}),
-    ...(options.lock?.lockReason ? { lockReason: options.lock.lockReason } : {}),
-    ...(options.lock?.acquiredAt ? { acquiredAt: options.lock.acquiredAt } : {}),
-    ...(options.lock?.expiresAt ? { expiresAt: options.lock.expiresAt } : {}),
-    version,
-    rootId: spec.rootId,
     title: spec.title,
-    ...(spec.createdAt ? { createdAt: spec.createdAt } : {}),
-    updatedAt: updated,
+    rootId: spec.rootId,
   };
 
   const lines: string[] = [];

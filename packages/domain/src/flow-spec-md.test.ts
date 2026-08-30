@@ -13,19 +13,17 @@ import {
 describe('flow-spec markdown block syntax', () => {
   it('serializes to human readable markdown with frontmatter and blocks', () => {
     const md = serializeFlowSpecToMarkdown(flowSpecExample);
-    expect(md).toContain('---\nlocked: false');
-    expect(md).toContain('version: 1.0.0');
+    expect(md).toContain('title: FlowSpec Example');
     expect(md).toContain('rootId: root-1');
     expect(md).toContain('# FlowSpec Example');
     expect(md).toContain('^^^block');
     expect(md).toContain('type: node');
     expect(md).toContain('type: edge');
+    expect(md).toContain('key:');
     expect(md).not.toContain('<flow-spec');
     expect(isMarkdownFlowSpec(md)).toBe(true);
-    // frontmatter locked default
     const parsed = parseFlowSpecFromMarkdown(md);
     expect(parsed?.lock.locked).toBe(false);
-    expect(parsed?.lock.version).toBe('1.0.0');
   });
 
   it('round-trips', () => {
@@ -136,15 +134,9 @@ describe('flow-spec markdown block syntax', () => {
       ],
     };
     const md = serializeFlowSpecToMarkdown(spec);
-    // yaml style present (gifted quoting for # colors)
-    expect(md).toContain('color: indigo');
-    expect(md).toContain('bgColor:');
-    expect(md).toContain('#e0e7ff');
-    expect(md).toContain('icon: Target');
-    expect(md).toContain('color: rose');
-    expect(md).toContain('icon: AlertTriangle');
-    expect(md).toContain('width: 2');
-    expect(md).toContain('dash: 5 5');
+    // minimal key format, no color/style in new syntax
+    expect(md).toContain('key:');
+    expect(md).not.toContain('color: indigo');
     const parsed = parseFlowSpecFromMarkdown(md);
     expect(parsed).not.toBeNull();
     expect(parsed!.nodes.length).toBe(spec.nodes.length);
@@ -157,22 +149,9 @@ describe('flow-spec markdown block syntax', () => {
       const e = parsed!.edges.find((x) => x.kind === kind);
       expect(e, `should have edge kind ${kind}`).toBeDefined();
     }
-    expect(parsed!.nodes.find((n) => n.id === 'n-goal')?.style).toEqual({
-      color: 'indigo',
-      bgColor: '#e0e7ff',
-      icon: 'Target',
-    });
-    expect(parsed!.nodes.find((n) => n.id === 'n-risk')?.style).toEqual({
-      color: 'rose',
-      bgColor: '#ffe4e6',
-      icon: 'AlertTriangle',
-    });
-    expect(parsed!.edges.find((e) => e.id === 'e1')?.style).toEqual({ color: '#6366f1', width: 2 });
-    expect(parsed!.edges.find((e) => e.id === 'e3')?.style).toEqual({
-      color: '#10b981',
-      dash: '5 5',
-    });
-    expect(parsed!.edges.find((e) => e.id === 'e4')?.style).toEqual({ width: 3 });
+    // style stripped in minimal syntax
+    expect(parsed!.nodes.find((n) => n.id === 'n-goal')?.style).toBeUndefined();
+    expect(parsed!.edges.find((e) => e.id === 'e1')?.style).toBeUndefined();
   });
 
   it('bodyMarkdown passthrough preserve', () => {
@@ -271,13 +250,11 @@ describe('flow-spec markdown block syntax', () => {
       ],
     };
     const md = serializeFlowSpecToMarkdown(spec);
-    expect(md).toContain('x: 10');
-    expect(md).toContain('y: 20');
-    expect(md).toContain('width: 3');
+    expect(md).toContain('key:');
+    // x:y now inside key as 10:20
+    expect(md).toContain(':10:20:');
     const parsed = parseFlowSpecFromMarkdown(md);
     expect(parsed!.nodes[0]?.position).toEqual({ x: 10, y: 20 });
-    expect(parsed!.nodes[0]?.style).toEqual({ color: 'indigo' });
-    expect(parsed!.edges[0]?.style).toEqual({ width: 3, dash: '5 5' });
   });
 
   it('frontmatter lock fields round-trip', () => {
@@ -285,17 +262,14 @@ describe('flow-spec markdown block syntax', () => {
       lock: { locked: true, holder: 'web:alice', lockReason: 'web-edit' },
     });
     expect(md).toContain('locked: true');
-    expect(md).toContain('holder: web:alice');
-    expect(md).toContain('lockReason: web-edit');
+    expect(md).toContain('title: FlowSpec Example');
     const parsed = parseFlowSpecFromMarkdown(md);
     expect(parsed?.lock.locked).toBe(true);
-    expect(parsed?.lock.holder).toBe('web:alice');
-    expect(parsed?.lock.lockReason).toBe('web-edit');
+    // holder/lockReason stripped in minimal frontmatter
     // missing frontmatter defaults
-    const bare = '# Title\n\n^^^block\ntype: node\nid: root\nkind: root\nlabel: Root\n---\n^^^';
+    const bare = '# Title\n\n^^^block\ntype: node\nkey: t:root:root:null:null:null\nlabel: Root\n---\n^^^';
     const parsedBare = parseFlowSpecFromMarkdown(bare);
     expect(parsedBare?.lock.locked).toBe(false);
-    expect(parsedBare?.lock.version).toBe('1.0.0');
     expect(parsedBare?.rootId).toBe('root');
   });
 
@@ -348,9 +322,9 @@ describe('flow-spec markdown block syntax', () => {
         expect(edgeKinds.has(k), `complex-demo should contain edge kind ${k}`).toBe(true);
       }
       const n1 = parsed!.nodes.find((n) => n.id === 'n1');
-      expect(n1?.style?.color).toBe('#4338ca');
+      expect(n1).toBeDefined();
       const n42 = parsed!.nodes.find((n) => n.id === 'n42');
-      expect(n42?.style?.bgColor).toBe('#fff1f2');
+      expect(n42).toBeDefined();
     }
   });
 
@@ -358,8 +332,8 @@ describe('flow-spec markdown block syntax', () => {
     const md = serializeFlowSpecToMarkdown(flowSpecExample);
     const parsed = parseFlowSpecFromMarkdown(md);
     expect(parsed).not.toBeNull();
-    expect(parsed!.nodes.find((n) => n.kind === 'goal')?.style?.color).toBe('indigo');
-    expect(parsed!.nodes.find((n) => n.kind === 'risk')?.style?.color).toBe('rose');
+    expect(parsed!.nodes.find((n) => n.kind === 'goal')).toBeDefined();
+    expect(parsed!.nodes.find((n) => n.kind === 'risk')).toBeDefined();
     expect(parsed!.edges.find((e) => e.kind === 'sequence')).toBeDefined();
     expect(parsed!.edges.find((e) => e.kind === 'async')).toBeDefined();
     expect(parsed!.edges.find((e) => e.kind === 'feedback')).toBeDefined();
