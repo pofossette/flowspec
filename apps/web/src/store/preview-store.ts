@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { FlowSpec } from '@flowspec/core';
-import type { LockInfo } from '@flowspec/core/lock';
+import type { FlowSpec } from '@flowspec/domain';
+import type { LockInfo } from '@flowspec/lock';
 
 export type PreviewSelection = { type: 'node' | 'edge'; id: string } | null;
 

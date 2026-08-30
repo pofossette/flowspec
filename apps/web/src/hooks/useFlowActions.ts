@@ -1,6 +1,6 @@
 import * as React from 'react';
-import type { FlowSpec } from '@flowspec/core';
-import type { LockInfo } from '@flowspec/core/lock';
+import type { FlowSpec } from '@flowspec/domain';
+import type { LockInfo } from '@flowspec/lock';
 import { usePreviewStore } from '../store/preview-store.js';
 
 export function useFlowActions(opts: {

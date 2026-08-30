@@ -11,10 +11,7 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "types": ["vite/client", "node"],
-    "paths": {
-      "@flowspec/core": ["../../packages/core/src/index.ts"],
-      "@flowspec/core/*": ["../../packages/core/src/*"]
-    }
+    "paths": {}
   },
   "include": ["src/**/*"]
 }

@@ -2,7 +2,7 @@
 
 - **Date**: 2026-08-30
 - **Author**: Muse Spark + User
-- **Status**: Draft — awaiting review before planning
+- **Status**: Implemented
 - **Scope**: 调整子包结构为 `packages/*`（各类子包）+ `apps/*`（cli / web 两个入口），完全移除 `packages/core` 聚合包
 
 ## 1. 背景与目标

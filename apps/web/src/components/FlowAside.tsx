@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button } from '@heroui/react';
-import type { FlowSpec } from '@flowspec/core';
+import type { FlowSpec } from '@flowspec/domain';
 import type { PreviewSelection } from '../store/preview-store.js';
 import { DocNav } from './DocNav.js';
 import { NodeDetail } from './NodeDetail.js';

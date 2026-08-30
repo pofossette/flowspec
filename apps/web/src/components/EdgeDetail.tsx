@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Card, Chip, Modal, TextField, Label, Input } from '@heroui/react';
-import type { FlowSpec } from '@flowspec/core';
+import type { FlowSpec } from '@flowspec/domain';
 import { useThemeStore, useEffectiveTheme } from '../store/theme-store.js';
 import { BlockMarkdownEditor } from './BlockMarkdownEditor.js';
 

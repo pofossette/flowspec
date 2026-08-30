@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Card, Spinner, Dropdown } from '@heroui/react';
-import { FlowMapCanvas } from '@flowspec/core/web';
+import { FlowMapCanvas } from '@flowspec/web';
 import { usePreviewStore } from './store/preview-store.js';
 import { LeftNav } from './components/LeftNav.js';
 import { AppHeader } from './components/AppHeader.js';

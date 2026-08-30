@@ -1,5 +1,5 @@
 import { Card, Chip } from '@heroui/react';
-import type { FlowSpec } from '@flowspec/core';
+import type { FlowSpec } from '@flowspec/domain';
 import { usePreviewStore } from '../store/preview-store.js';
 
 export function DocNav(props: {

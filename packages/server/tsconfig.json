@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "./dist", "rootDir": "./src", "composite": true, "tsBuildInfoFile": "./dist/.tsbuildinfo", "lib": ["ES2022","DOM"], "noUnusedLocals": false },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../domain" }, { "path": "../lock" }, { "path": "../registry" }]
+}
