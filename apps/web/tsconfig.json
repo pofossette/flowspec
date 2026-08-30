@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "composite": false,
+    "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "baseUrl": ".",
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@flowspec/core": ["../../packages/core/src/index.ts"],
+      "@flowspec/core/*": ["../../packages/core/src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

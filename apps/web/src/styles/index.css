@@ -1,0 +1,75 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@import "tailwindcss";
+@import "@heroui/styles";
+
+@source "../../../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+@source "../../../../node_modules/@heroui/react/dist/**/*.{js,ts,jsx,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: light;
+  --panel-bg: #f9fafb;
+  --panel-surface: #ffffff;
+  --panel-elevated: #f3f4f6;
+  --panel-line: #e5e7eb;
+  --panel-text: #111827;
+  --panel-muted: #6b7280;
+  --panel-accent: #4f46e5;
+  --panel-accent-strong: #4338ca;
+  --panel-accent-contrast: #ffffff;
+}
+
+:root.dark,
+.dark,
+[data-mantine-color-scheme='dark'] {
+  color-scheme: dark;
+  --panel-bg: #0a0a0a;
+  --panel-surface: #1a1a1a;
+  --panel-elevated: #262626;
+  --panel-line: #27272a;
+  --panel-text: #fafafa;
+  --panel-muted: #a1a1aa;
+  --panel-accent: #6366f1;
+  --panel-accent-strong: #4f46e5;
+  --panel-accent-contrast: #ffffff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--panel-bg) !important;
+  color: var(--panel-text) !important;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* BlockNote: Feishu-like single-pane, no double white frame, narrow aside */
+.block-markdown-editor .bn-container,
+.block-markdown-editor .bn-editor,
+.block-markdown-editor .mantine-RichTextEditor-content {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.block-markdown-editor .bn-container {
+  padding: 0;
+}
+.block-markdown-editor .bn-editor {
+  padding: 10px 14px;
+  min-height: 220px;
+}
+.block-markdown-editor .bn-block-outer {
+  padding-block: 2px;
+}
+/* toolbar / side menu already float; keep wrapper subtle in 380px */
+.block-markdown-editor [data-position='top'] {
+  z-index: 5;
+}

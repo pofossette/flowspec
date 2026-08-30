@@ -1,0 +1,41 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-30T12:32:34.152Z",
+  "entries": {
+    "complex-demo": {
+      "path": "flowspec/complex-demo.md",
+      "title": "Complex Agent Workflow — Order-to-Cash",
+      "rootId": "root",
+      "addedAt": "2026-08-30T12:32:34.140Z",
+      "updatedAt": "2026-08-30T12:32:34.140Z"
+    },
+    "demo": {
+      "path": "flowspec/demo.md",
+      "title": "Demo MD",
+      "rootId": "root-1",
+      "addedAt": "2026-08-30T12:32:34.141Z",
+      "updatedAt": "2026-08-30T12:32:34.141Z"
+    },
+    "next-stage": {
+      "path": "flowspec/next-stage.md",
+      "title": "Flow Preview Next Stage — 图即 Spec",
+      "rootId": "root",
+      "addedAt": "2026-08-30T12:32:34.144Z",
+      "updatedAt": "2026-08-30T12:32:34.144Z"
+    },
+    "roadmap": {
+      "path": "flowspec/roadmap.md",
+      "title": "TrapMap 后续演进路线 — 模块化收敛与闭环",
+      "rootId": "root-roadmap",
+      "addedAt": "2026-08-30T12:32:34.149Z",
+      "updatedAt": "2026-08-30T12:32:34.149Z"
+    },
+    "showcase": {
+      "path": "flowspec/showcase.md",
+      "title": "Showcase — 智能检索增量编译",
+      "rootId": "root-1",
+      "addedAt": "2026-08-30T12:32:34.152Z",
+      "updatedAt": "2026-08-30T12:32:34.152Z"
+    }
+  }
+}
