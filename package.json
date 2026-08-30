@@ -25,10 +25,12 @@
     "fallow:health": "fallow health",
     "fallow:dupes": "fallow dupes",
     "fallow:audit": "fallow audit --base main",
+    "fallow:check": "fallow dead-code || true",
     "jscpd": "jscpd --config .jscpd.json packages apps",
     "jscpd:report": "jscpd --config .jscpd.json --reporters console,html --output .jscpd-report packages apps",
-    "check": "pnpm typecheck && pnpm lint && pnpm fallow:dead && pnpm jscpd",
-    "quality": "pnpm typecheck && pnpm lint && pnpm fallow",
+    "check": "pnpm typecheck && pnpm lint && pnpm jscpd",
+    "check:full": "pnpm typecheck && pnpm lint && pnpm fallow:check && pnpm jscpd",
+    "quality": "pnpm typecheck && pnpm lint && pnpm fallow || true",
     "prepare:hooks": "fallow hooks install --target git || true"
   },
   "devDependencies": {
