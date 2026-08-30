@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { lockInfoSchema, nowIso, type LockInfo, type LockStatus } from './types.js';
-import { atomicWriteFileSync } from './helpers.js';
 import { readLockFromMarkdown, writeLockToMarkdown } from './frontmatter.js';
+import { atomicWriteFileSync } from './helpers.js';
 import { ensureFlowspecDir, resolveLockPath, resolveSpecPath } from './paths.js';
+import { type LockInfo, type LockStatus, lockInfoSchema, nowIso } from './types.js';
 
 const DEFAULT_DIR = 'flowspec';
 
@@ -66,7 +66,7 @@ export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR): LockStatus
         frontmatterStatus.info.holder !== fileStatus.info.holder);
     if (mismatch && (fileInfo !== null || frontmatterStatus.locked)) {
       console.warn(
-        `[flow-spec] lock mismatch for "${id}": frontmatter ${frontmatterStatus.locked ? `locked by "${frontmatterStatus.info.holder}"` : 'unlocked'} vs file ${fileStatus.locked ? `locked by "${fileStatus.info.holder}"` : 'unlocked'}`,
+        `[flow-spec] lock mismatch for "${id}": frontmatter ${frontmatterStatus.locked ? `locked by "${frontmatterStatus.info.holder}"` : 'unlocked'} vs file ${fileStatus.locked ? `locked by "${fileStatus.info.holder}"` : 'unlocked'}`
       );
     }
     return frontmatterStatus;
@@ -77,7 +77,7 @@ export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR): LockStatus
 export function acquireLock(
   id: string,
   holder?: string,
-  opts: { note?: string; force?: boolean; flowspecDir?: string } = {},
+  opts: { note?: string; force?: boolean; flowspecDir?: string } = {}
 ): LockInfo {
   const flowspecDir = opts.flowspecDir ?? DEFAULT_DIR;
   const lockPath = resolveLockPath(id, flowspecDir);
@@ -89,7 +89,7 @@ export function acquireLock(
   const current = getLockStatus(id, flowspecDir);
   if (current.locked && !opts.force) {
     throw new Error(
-      `flowspec "${id}" is already locked by "${current.info.holder}" since ${current.info.acquiredAt}`,
+      `flowspec "${id}" is already locked by "${current.info.holder}" since ${current.info.acquiredAt}`
     );
   }
   if (current.locked && opts.force) {
@@ -122,13 +122,13 @@ export function acquireLock(
         fs.unlinkSync(lockPath);
       } catch {}
     }
-    fs.writeFileSync(lockPath, JSON.stringify(info, null, 2) + '\n', { flag: 'wx' });
+    fs.writeFileSync(lockPath, `${JSON.stringify(info, null, 2)}\n`, { flag: 'wx' });
   } catch (e: unknown) {
     const err = e as NodeJS.ErrnoException;
     if (err.code === 'EEXIST') {
       const again = readLock(id, flowspecDir);
       throw new Error(
-        `flowspec "${id}" is already locked by "${again?.holder ?? current.info?.holder ?? 'unknown'}"`,
+        `flowspec "${id}" is already locked by "${again?.holder ?? current.info?.holder ?? 'unknown'}"`
       );
     }
     throw e;
@@ -139,7 +139,7 @@ export function acquireLock(
 export function releaseLock(
   id: string,
   holder?: string,
-  opts: { force?: boolean; flowspecDir?: string } = {},
+  opts: { force?: boolean; flowspecDir?: string } = {}
 ): void {
   const flowspecDir = opts.flowspecDir ?? DEFAULT_DIR;
   const lockPath = resolveLockPath(id, flowspecDir);
@@ -151,7 +151,7 @@ export function releaseLock(
   const authoritativeHolder = current.locked ? current.info.holder : fileInfo?.holder;
   if (holder && authoritativeHolder && authoritativeHolder !== holder && !opts.force) {
     throw new Error(
-      `lock holder mismatch: locked by "${authoritativeHolder}", but release requested by "${holder}"`,
+      `lock holder mismatch: locked by "${authoritativeHolder}", but release requested by "${holder}"`
     );
   }
   if (isMd && fs.existsSync(specPath)) {

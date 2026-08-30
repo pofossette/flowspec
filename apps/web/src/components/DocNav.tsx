@@ -1,11 +1,8 @@
-import { Card, Chip } from '@heroui/react';
 import type { FlowSpec } from '@flowspec/domain';
+import { Card, Chip } from '@heroui/react';
 import { usePreviewStore } from '../store/preview-store.js';
 
-export function DocNav(props: {
-  draft: FlowSpec;
-  readOnly: boolean;
-}): React.JSX.Element {
+export function DocNav(props: { draft: FlowSpec; readOnly: boolean }): React.JSX.Element {
   const { draft, readOnly } = props;
   const setSelection = usePreviewStore((s) => s.setSelection);
   return (

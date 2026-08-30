@@ -1,9 +1,9 @@
-import { markPath, previewPath } from './paths.js';
-import { nowIso, registrySchema, type Registry, type RegistryEntry } from './types.js';
 import { atomicWrite, enqueueWriteAsync, readRegistryFile } from './helpers.js';
+import { markPath, previewPath } from './paths.js';
+import { nowIso, type Registry, type RegistryEntry, registrySchema } from './types.js';
 
 export { atomicWrite } from './helpers.js';
-export { syncFromFilesystem, type SyncOptions } from './sync.js';
+export { type SyncOptions, syncFromFilesystem } from './sync.js';
 
 // single-process RMW only; atomicWrite is file-level tmp+rename, async queue for in-process concurrency
 export function loadMark(root?: string): Registry {
@@ -44,7 +44,7 @@ export function addEntry(
   kind: 'mark' | 'preview',
   id: string,
   entry: RegistryEntry,
-  root?: string,
+  root?: string
 ): Registry {
   const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
   const now = nowIso();
@@ -85,7 +85,7 @@ export function updateEntry(
   kind: 'mark' | 'preview',
   id: string,
   patch: Partial<RegistryEntry>,
-  root?: string,
+  root?: string
 ): Registry | null {
   const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
   const existing = reg.entries[id];
@@ -108,14 +108,14 @@ export function updateEntry(
 export function updateMarkEntry(
   id: string,
   patch: Partial<RegistryEntry>,
-  root?: string,
+  root?: string
 ): Registry | null {
   return updateEntry('mark', id, patch, root);
 }
 export function updatePreviewEntry(
   id: string,
   patch: Partial<RegistryEntry>,
-  root?: string,
+  root?: string
 ): Registry | null {
   return updateEntry('preview', id, patch, root);
 }
@@ -123,7 +123,7 @@ export function moveEntry(
   kind: 'mark' | 'preview',
   oldId: string,
   newId: string,
-  root?: string,
+  root?: string
 ): Registry | null {
   if (oldId === newId) return kind === 'mark' ? loadMark(root) : loadPreview(root);
   const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
@@ -148,7 +148,7 @@ export function moveEntryBetween(
   to: 'mark' | 'preview',
   id: string,
   newId?: string,
-  root?: string,
+  root?: string
 ): Registry | null {
   const src = from === 'mark' ? loadMark(root) : loadPreview(root);
   const entry = src.entries[id];
@@ -174,7 +174,7 @@ export function listPreview(root?: string): Array<RegistryEntry & { id: string }
 export function isRegistered(
   id: string,
   kind: 'mark' | 'preview' | 'any' = 'any',
-  root?: string,
+  root?: string
 ): boolean {
   if (kind === 'mark') return id in loadMark(root).entries;
   if (kind === 'preview') return id in loadPreview(root).entries;
@@ -184,7 +184,7 @@ export async function addEntryAsync(
   kind: 'mark' | 'preview',
   id: string,
   entry: RegistryEntry,
-  root?: string,
+  root?: string
 ): Promise<Registry> {
   const file = kind === 'mark' ? markPath(root) : previewPath(root);
   let result!: Registry;

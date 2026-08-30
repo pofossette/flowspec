@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { flowSpecSchema } from '@flowspec/domain';
 import {
   getLockStatus,
   loadSpecRaw,
@@ -8,7 +9,6 @@ import {
   resolveSpecBodyAndFrontmatter,
   resolveSpecPath,
 } from '@flowspec/lock';
-import { flowSpecSchema } from '@flowspec/domain';
 
 export const TRAPMAP_GATEWAY_URL = process.env.TRAPMAP_GATEWAY_URL ?? 'http://127.0.0.1:4000';
 export const TRAPMAP_API_KEY =
@@ -80,7 +80,7 @@ export function ensureFileWatcher(id: string, dir: string): void {
   const dirOfSpec = path.dirname(specPath);
   if (!fs.existsSync(dirOfSpec)) return;
   try {
-    const w = fs.watch(dirOfSpec, (evt, name) => {
+    const w = fs.watch(dirOfSpec, (_evt, name) => {
       if (!name) return;
       if (name !== path.basename(specPath) && name !== path.basename(lockPath)) return;
       setTimeout(() => {
@@ -88,7 +88,7 @@ export function ensureFileWatcher(id: string, dir: string): void {
           const raw = loadSpecRaw(id, dir);
           const parsed = raw ? flowSpecSchema.safeParse(raw) : null;
           const lock = getLockStatus(id, dir);
-          if (parsed && parsed.success) {
+          if (parsed?.success) {
             const rawContent = readRawSpecContent(specPath);
             const { bodyMarkdown, frontmatter } = resolveSpecBodyAndFrontmatter(raw, rawContent);
             broadcast(id, dir, {
@@ -113,7 +113,7 @@ export function getTrapmapGatewayUrl(
     query?: Record<string, string> | undefined;
     headers: Record<string, string | string[] | undefined>;
   },
-  fallback: string = TRAPMAP_GATEWAY_URL,
+  fallback: string = TRAPMAP_GATEWAY_URL
 ): string {
   const q = req.query as Record<string, string> | undefined;
   const headerUrl = (req.headers['x-trapmap-gateway-url'] as string | undefined)?.trim();

@@ -35,21 +35,21 @@ function toNumberVal(v: unknown): number | undefined {
 }
 
 export function rawBlockToNode(raw: Record<string, unknown>, content: string): FlowNode | null {
-  const id = toStringVal(raw['id']);
-  const label = toStringVal(raw['label']);
+  const id = toStringVal(raw.id);
+  const label = toStringVal(raw.label);
   if (!id || !label) return null;
-  const kind = (toStringVal(raw['kind']) as FlowNode['kind']) ?? 'branch';
-  const status = toStringVal(raw['status']) as FlowNode['status'] | undefined;
-  const collapsedRaw = raw['collapsed'];
+  const kind = (toStringVal(raw.kind) as FlowNode['kind']) ?? 'branch';
+  const status = toStringVal(raw.status) as FlowNode['status'] | undefined;
+  const collapsedRaw = raw.collapsed;
   const collapsed = collapsedRaw === true || collapsedRaw === 'true' ? true : undefined;
 
-  const x = toNumberVal(raw['x']);
-  const y = toNumberVal(raw['y']);
+  const x = toNumberVal(raw.x);
+  const y = toNumberVal(raw.y);
   const position = x !== undefined && y !== undefined ? { x, y } : undefined;
 
-  const color = toStringVal(raw['color']);
-  const bgColor = toStringVal(raw['bgColor']);
-  const icon = toStringVal(raw['icon']);
+  const color = toStringVal(raw.color);
+  const bgColor = toStringVal(raw.bgColor);
+  const icon = toStringVal(raw.icon);
   const style =
     color !== undefined || bgColor !== undefined || icon !== undefined
       ? {
@@ -61,7 +61,7 @@ export function rawBlockToNode(raw: Record<string, unknown>, content: string): F
 
   // data: JSON string or object
   let data: Record<string, unknown> | undefined;
-  const dataRaw = raw['data'];
+  const dataRaw = raw.data;
   if (dataRaw !== undefined) {
     if (typeof dataRaw === 'object' && dataRaw !== null && !Array.isArray(dataRaw)) {
       data = dataRaw as Record<string, unknown>;
@@ -103,17 +103,17 @@ export function rawBlockToNode(raw: Record<string, unknown>, content: string): F
 }
 
 export function rawBlockToEdge(raw: Record<string, unknown>, content: string): FlowEdge | null {
-  const id = toStringVal(raw['id']);
-  const source = toStringVal(raw['source']);
-  const target = toStringVal(raw['target']);
+  const id = toStringVal(raw.id);
+  const source = toStringVal(raw.source);
+  const target = toStringVal(raw.target);
   if (!id || !source || !target) return null;
-  const kind = (toStringVal(raw['kind']) as FlowEdge['kind']) ?? 'hierarchical';
-  const label = toStringVal(raw['label']);
-  const directedRaw = raw['directed'];
-  const directed = directedRaw === false || directedRaw === 'false' ? false : true;
-  const color = toStringVal(raw['color']);
-  const width = toNumberVal(raw['width']);
-  const dash = toStringVal(raw['dash']);
+  const kind = (toStringVal(raw.kind) as FlowEdge['kind']) ?? 'hierarchical';
+  const label = toStringVal(raw.label);
+  const directedRaw = raw.directed;
+  const directed = !(directedRaw === false || directedRaw === 'false');
+  const color = toStringVal(raw.color);
+  const width = toNumberVal(raw.width);
+  const dash = toStringVal(raw.dash);
   const style =
     color !== undefined || width !== undefined || dash !== undefined
       ? {
@@ -144,17 +144,17 @@ export function nodeToYamlHead(node: FlowNode): Record<string, unknown> {
     kind: node.kind,
     label: node.label,
   };
-  if (node.status) out['status'] = node.status;
-  if (node.collapsed) out['collapsed'] = true;
+  if (node.status) out.status = node.status;
+  if (node.collapsed) out.collapsed = true;
   if (node.position) {
-    out['x'] = node.position.x;
-    out['y'] = node.position.y;
+    out.x = node.position.x;
+    out.y = node.position.y;
   }
-  if (node.style?.color) out['color'] = node.style.color;
-  if (node.style?.bgColor) out['bgColor'] = node.style.bgColor;
-  if (node.style?.icon) out['icon'] = node.style.icon;
+  if (node.style?.color) out.color = node.style.color;
+  if (node.style?.bgColor) out.bgColor = node.style.bgColor;
+  if (node.style?.icon) out.icon = node.style.icon;
   if (node.data && Object.keys(node.data).length > 0) {
-    out['data'] = node.data;
+    out.data = node.data;
   }
   return out;
 }
@@ -167,11 +167,11 @@ export function edgeToYamlHead(edge: FlowEdge): Record<string, unknown> {
     target: edge.target,
     kind: edge.kind,
   };
-  if (edge.label) out['label'] = edge.label;
-  if (edge.directed === false) out['directed'] = false;
-  if (edge.style?.color) out['color'] = edge.style.color;
-  if (edge.style?.width !== undefined) out['width'] = edge.style.width;
-  if (edge.style?.dash) out['dash'] = edge.style.dash;
+  if (edge.label) out.label = edge.label;
+  if (edge.directed === false) out.directed = false;
+  if (edge.style?.color) out.color = edge.style.color;
+  if (edge.style?.width !== undefined) out.width = edge.style.width;
+  if (edge.style?.dash) out.dash = edge.style.dash;
   // content is not in YAML, it's markdown body
   return out;
 }

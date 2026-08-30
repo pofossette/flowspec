@@ -1,9 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { createEmptyRegistry, nowIso, registrySchema, type Registry } from './types.js';
+import { flowSpecSchema, isMarkdownFlowSpec, parseFlowSpecFromMarkdown } from '@flowspec/domain';
 import { atomicWriteFileSync } from '@flowspec/lock';
-import { parseFlowSpecFromMarkdown, isMarkdownFlowSpec } from '@flowspec/domain';
-import { flowSpecSchema } from '@flowspec/domain';
+import { createEmptyRegistry, nowIso, type Registry, registrySchema } from './types.js';
 
 export function readRegistryFile(filePath: string): Registry {
   if (!fs.existsSync(filePath)) return createEmptyRegistry();
@@ -24,7 +23,7 @@ export function readRegistryFile(filePath: string): Registry {
 }
 
 export function atomicWrite(filePath: string, data: Registry): void {
-  const content = JSON.stringify(data, null, 2) + '\n';
+  const content = `${JSON.stringify(data, null, 2)}\n`;
   atomicWriteFileSync(filePath, content);
 }
 

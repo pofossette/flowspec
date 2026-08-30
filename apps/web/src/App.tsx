@@ -1,14 +1,14 @@
-import * as React from 'react';
-import { Card, Spinner, Dropdown } from '@heroui/react';
 import { FlowMapCanvas } from '@flowspec/web';
-import { usePreviewStore } from './store/preview-store.js';
-import { LeftNav } from './components/LeftNav.js';
+import { Card, Dropdown, Spinner } from '@heroui/react';
+import * as React from 'react';
 import { AppHeader } from './components/AppHeader.js';
 import { FlowAside } from './components/FlowAside.js';
+import { LeftNav } from './components/LeftNav.js';
+import { useFlowActions } from './hooks/useFlowActions.js';
 import { useFlowList } from './hooks/useFlowList.js';
 import { useFlowSync } from './hooks/useFlowSync.js';
 import { useThemeSync } from './hooks/useThemeSync.js';
-import { useFlowActions } from './hooks/useFlowActions.js';
+import { usePreviewStore } from './store/preview-store.js';
 
 function useQuery(): URLSearchParams {
   return React.useMemo(() => new URLSearchParams(window.location.search), []);
@@ -20,7 +20,7 @@ class ErrorBoundary extends React.Component<
 > {
   state = { error: null as string | null };
   static getDerivedStateFromError(e: unknown): { error: string } {
-    return { error: e instanceof Error ? e.message + '\n' + (e.stack ?? '') : String(e) };
+    return { error: e instanceof Error ? `${e.message}\n${e.stack ?? ''}` : String(e) };
   }
   componentDidCatch(e: unknown): void {
     console.error(e);
@@ -43,7 +43,7 @@ export default function App(): React.JSX.Element {
   const api = React.useCallback((p: string) => `${apiBase}${p}`, [apiBase]);
 
   const { flowList, activeId, id, menuCollapsed, setMenuCollapsed, handleSwitchFlow } = useFlowList(
-    { dir, api, initialId },
+    { dir, api, initialId }
   );
   const { fetchAll, wsSend } = useFlowSync({ api, apiBase, id, dir, holder });
   const { spec, draft, selection, message, loading, error, saving, setSelection } =

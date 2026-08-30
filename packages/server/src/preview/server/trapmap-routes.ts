@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import {
+  getTrapmapGatewayUrl,
   TRAPMAP_API_KEY,
   TRAPMAP_GATEWAY_URL,
-  getTrapmapGatewayUrl,
   toApiError,
 } from './helpers.js';
 

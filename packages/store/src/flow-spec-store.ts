@@ -1,7 +1,7 @@
-import { create } from 'zustand';
 import type { FlowSpec } from '@flowspec/domain';
 import { flowSpecExample } from '@flowspec/domain';
 import type { LockInfo } from '@flowspec/lock';
+import { create } from 'zustand';
 
 export type FlowSpecState = {
   spec: FlowSpec;

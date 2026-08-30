@@ -1,12 +1,12 @@
-import * as React from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
+  type EdgeProps,
   getBezierPath,
   getSmoothStepPath,
   getStraightPath,
-  type EdgeProps,
 } from '@xyflow/react';
+import type * as React from 'react';
 
 type FlowEdgeData = {
   kind?: string | undefined;
@@ -28,7 +28,7 @@ function resolveStroke(
   fallbackColor: string,
   fallbackWidth: number,
   fallbackDash: string | undefined,
-  darkFallback?: string,
+  darkFallback?: string
 ): { stroke: string; strokeWidth: number; strokeDasharray: string | undefined } {
   const isDark = isDarkMode();
   const effectiveFallback = isDark && darkFallback ? darkFallback : fallbackColor;
@@ -137,7 +137,7 @@ export function HierarchicalEdge(props: EdgeProps): React.JSX.Element {
     '#cbd5e1',
     2,
     undefined,
-    '#475569',
+    '#475569'
   );
   const markerId = `arrow-hier-${id}`;
   const edgeStyle: React.CSSProperties = {
@@ -187,7 +187,7 @@ export function SequenceEdge(props: EdgeProps): React.JSX.Element {
     '#0f172a',
     2,
     undefined,
-    '#e2e8f0',
+    '#e2e8f0'
   );
   const markerId = `arrow-seq-${id}`;
   const edgeStyle: React.CSSProperties = {
@@ -319,7 +319,7 @@ export function ReferenceEdge(props: EdgeProps): React.JSX.Element {
     '#9ca3af',
     1.5,
     '2 4',
-    '#6b7280',
+    '#6b7280'
   );
   const edgeStyle: React.CSSProperties = {
     stroke,
@@ -369,7 +369,7 @@ export function CausalEdge(props: EdgeProps): React.JSX.Element {
     '#7c3aed',
     2.5,
     undefined,
-    '#a78bfa',
+    '#a78bfa'
   );
   const markerId = `arrow-causal-${id}`;
   const edgeStyle: React.CSSProperties = {
@@ -443,7 +443,7 @@ export function BlockedEdge(props: EdgeProps): React.JSX.Element {
     '#e11d48',
     2,
     undefined,
-    '#fb7185',
+    '#fb7185'
   );
   const edgeStyle: React.CSSProperties = {
     stroke,

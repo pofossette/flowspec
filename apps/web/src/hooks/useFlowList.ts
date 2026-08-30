@@ -3,11 +3,7 @@ import { usePreviewStore } from '../store/preview-store.js';
 
 export type FlowListEntry = { id: string; title: string; path: string };
 
-export function useFlowList(opts: {
-  dir: string;
-  api: (p: string) => string;
-  initialId: string;
-}): {
+export function useFlowList(opts: { dir: string; api: (p: string) => string; initialId: string }): {
   flowList: FlowListEntry[];
   activeId: string;
   id: string;
@@ -46,13 +42,13 @@ export function useFlowList(opts: {
         window.history.pushState(null, '', u.toString());
       } catch {}
     },
-    [setSelection],
+    [setSelection]
   );
 
   React.useEffect(() => {
     if (flowList.length === 0) return;
     if (!flowList.some((f) => f.id === activeId)) {
-      handleSwitchFlow(flowList[0]!.id);
+      handleSwitchFlow(flowList[0]?.id);
     }
   }, [flowList, activeId, handleSwitchFlow]);
 

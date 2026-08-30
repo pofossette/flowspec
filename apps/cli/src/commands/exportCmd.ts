@@ -1,6 +1,7 @@
 // filename `exportCmd.ts` avoids TS keyword collision for `export.ts`; command name remains `export`
-import type { Command } from 'commander';
+
 import { safeParseFlowSpec } from '@flowspec/domain';
+import type { Command } from 'commander';
 import { readSpec, writeSpec } from './shared.js';
 
 export function registerExportCommand(flow: Command): void {

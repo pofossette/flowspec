@@ -1,6 +1,11 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { FastifyInstance } from 'fastify';
+import {
+  extractBodyMarkdown,
+  flowSpecSchema,
+  isMarkdownFlowSpec,
+  parseFlowSpecFromMarkdown,
+} from '@flowspec/domain';
 import {
   acquireLock,
   getEmptySpecForPureMarkdown,
@@ -14,12 +19,7 @@ import {
   resolveSpecPath,
   saveSpecRaw,
 } from '@flowspec/lock';
-import { flowSpecSchema } from '@flowspec/domain';
-import {
-  extractBodyMarkdown,
-  isMarkdownFlowSpec,
-  parseFlowSpecFromMarkdown,
-} from '@flowspec/domain';
+import type { FastifyInstance } from 'fastify';
 import {
   broadcast,
   ensureFileWatcher,
@@ -33,7 +33,7 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
   app.get('/api/flow-spec', async (req, reply) => {
     const dirParam = resolveFlowspecDir(
       (req.query as Record<string, string> | undefined)?.dir as string | undefined,
-      flowspecDir,
+      flowspecDir
     );
     const dir = path.resolve(dirParam);
     let entries: Array<{ id: string; title: string; path: string; rootId: string }> = [];
@@ -160,16 +160,16 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     if (!parsed.success)
       return reply.code(400).send({ error: `invalid FlowSpec: ${parsed.error.message}` });
     const incomingBodyMarkdown =
-      typeof body?.['bodyMarkdown'] === 'string' ? (body['bodyMarkdown'] as string) : undefined;
+      typeof body?.bodyMarkdown === 'string' ? (body.bodyMarkdown as string) : undefined;
     const incomingLock =
-      body?.['frontmatter'] && typeof body['frontmatter'] === 'object'
-        ? (body['frontmatter'] as Record<string, unknown>)
-        : body?.['lock'] && typeof body['lock'] === 'object'
-          ? (body['lock'] as Record<string, unknown>)
+      body?.frontmatter && typeof body.frontmatter === 'object'
+        ? (body.frontmatter as Record<string, unknown>)
+        : body?.lock && typeof body.lock === 'object'
+          ? (body.lock as Record<string, unknown>)
           : undefined;
     const dataToSave: Record<string, unknown> = { ...parsed.data } as Record<string, unknown>;
-    if (incomingBodyMarkdown !== undefined) dataToSave['bodyMarkdown'] = incomingBodyMarkdown;
-    if (incomingLock !== undefined) dataToSave['lock'] = incomingLock;
+    if (incomingBodyMarkdown !== undefined) dataToSave.bodyMarkdown = incomingBodyMarkdown;
+    if (incomingLock !== undefined) dataToSave.lock = incomingLock;
     const savedPath = saveSpecRaw(decodedId, dataToSave as unknown, dir);
     let latestBody = incomingBodyMarkdown ?? '';
     let latestFm: unknown = incomingLock ?? null;

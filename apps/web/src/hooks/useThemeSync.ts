@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useThemeStore, useEffectiveTheme } from '../store/theme-store.js';
 import type { ThemeMode } from '../store/theme-store.js';
+import { useEffectiveTheme, useThemeStore } from '../store/theme-store.js';
 
 export function useThemeSync(): {
   mode: ThemeMode;

@@ -1,12 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import websocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
-import { registerTrapmapRoutes } from './trapmap-routes.js';
+import websocket from '@fastify/websocket';
+import Fastify from 'fastify';
 import { registerFlowSpecRoutes } from './flow-spec-routes.js';
+import { registerTrapmapRoutes } from './trapmap-routes.js';
 import { registerWsRoutes } from './ws.js';
 
 export type PreviewServerOptions = {
@@ -25,7 +25,7 @@ export type PreviewServerOptions = {
  * - 静态：优先 fastify-static，fallback 提示页
  */
 export async function createPreviewServer(
-  opts: PreviewServerOptions = {},
+  opts: PreviewServerOptions = {}
 ): Promise<import('node:http').Server> {
   const port = opts.port ?? 5174;
   const host = opts.host ?? '127.0.0.1';

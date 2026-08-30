@@ -1,9 +1,9 @@
-import * as React from 'react';
-import { createRoot } from 'react-dom/client';
 import { Toast } from '@heroui/react';
 import { MantineProvider } from '@mantine/core';
+import * as React from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App.js';
-import { useThemeStore, useEffectiveTheme } from './store/theme-store.js';
+import { useEffectiveTheme, useThemeStore } from './store/theme-store.js';
 import '@mantine/core/styles.css';
 import './styles/index.css';
 import '@xyflow/react/dist/style.css';
@@ -24,5 +24,5 @@ if (!root) throw new Error('root not found');
 createRoot(root).render(
   <React.StrictMode>
     <Root />
-  </React.StrictMode>,
+  </React.StrictMode>
 );

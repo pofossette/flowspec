@@ -1,7 +1,7 @@
-import * as React from 'react';
-import { Button, Card, Chip, Modal, TextField, Label, Input } from '@heroui/react';
 import type { FlowSpec } from '@flowspec/domain';
-import { useThemeStore, useEffectiveTheme } from '../store/theme-store.js';
+import { Button, Card, Chip, Input, Label, Modal, TextField } from '@heroui/react';
+import * as React from 'react';
+import { useEffectiveTheme, useThemeStore } from '../store/theme-store.js';
 import { BlockMarkdownEditor } from './BlockMarkdownEditor.js';
 
 const EDGE_KIND_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -31,7 +31,7 @@ export function EdgeDetail(props: {
   React.useEffect(() => {
     setLabel(edge.label ?? '');
     setContent(edge.content ?? '');
-  }, [edge.id, edge.label, edge.content]);
+  }, [edge.label, edge.content]);
   const dirty = label !== (edge.label ?? '') || content !== (edge.content ?? '');
   React.useEffect(() => {
     if (readOnly || !dirty) return;
@@ -40,36 +40,40 @@ export function EdgeDetail(props: {
   }, [label, content, dirty, readOnly, onUpdate]);
   const kindStyle = EDGE_KIND_COLORS[edge.kind] ?? EDGE_KIND_COLORS.hierarchical!;
   const [editorHeight, setEditorHeight] = React.useState(() => {
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('flow-doc-height') : null;
+    const saved =
+      typeof window !== 'undefined' ? window.localStorage.getItem('flow-doc-height') : null;
     const n = saved ? Number(saved) : 300;
     return Number.isFinite(n) ? Math.min(720, Math.max(180, n)) : 300;
   });
   const [fullscreen, setFullscreen] = React.useState(false);
-  const onHeightMouseDown = React.useCallback((e: React.MouseEvent) => {
-    const startY = e.clientY;
-    const startH = editorHeight;
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
-    const onMove = (ev: MouseEvent) => {
-      const dy = ev.clientY - startY;
-      const next = Math.min(720, Math.max(180, startH + dy));
-      setEditorHeight(next);
-    };
-    const onUp = () => {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      setEditorHeight((h) => {
-        try {
-          window.localStorage.setItem('flow-doc-height', String(h));
-        } catch {}
-        return h;
-      });
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [editorHeight]);
+  const onHeightMouseDown = React.useCallback(
+    (e: React.MouseEvent) => {
+      const startY = e.clientY;
+      const startH = editorHeight;
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+      const onMove = (ev: MouseEvent) => {
+        const dy = ev.clientY - startY;
+        const next = Math.min(720, Math.max(180, startH + dy));
+        setEditorHeight(next);
+      };
+      const onUp = () => {
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        setEditorHeight((h) => {
+          try {
+            window.localStorage.setItem('flow-doc-height', String(h));
+          } catch {}
+          return h;
+        });
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [editorHeight]
+  );
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-2">
@@ -169,7 +173,9 @@ export function EdgeDetail(props: {
           <Modal.Container size="full">
             <Modal.Dialog className="flex h-[90vh] max-h-[90vh] flex-col overflow-hidden border border-panel-line bg-panel-surface shadow-panel">
               <Modal.Header>
-                <Modal.Heading className="text-sm font-semibold">全屏编辑 · {edge.label ?? edge.id}</Modal.Heading>
+                <Modal.Heading className="text-sm font-semibold">
+                  全屏编辑 · {edge.label ?? edge.id}
+                </Modal.Heading>
               </Modal.Header>
               <Modal.Body className="min-h-0 flex-1 overflow-auto p-4">
                 <BlockMarkdownEditor

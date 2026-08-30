@@ -1,5 +1,5 @@
-import * as React from 'react';
 import type { LockInfo } from '@flowspec/lock';
+import type * as React from 'react';
 
 export type LockBannerProps = {
   lock: LockInfo | null;

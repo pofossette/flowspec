@@ -13,15 +13,15 @@ import { registerStopCommand } from './stop.js';
 import { registerUnlockCommand } from './unlock.js';
 import { registerValidateCommand } from './validate.js';
 
-export { deriveIdFromPath, toRepoRelative } from './shared.js';
-export { handleAddFlowSpec } from './add.js';
 export type { AddFlowOptions } from './add.js';
-export { handleCheckFlowSpec } from './check.js';
+export { handleAddFlowSpec } from './add.js';
 export type { CheckFlowOptions, CheckResult } from './check.js';
-export { handleRemoveFlowSpec } from './remove.js';
-export type { RemoveFlowOptions } from './remove.js';
-export { handleMoveFlowSpec } from './move.js';
+export { handleCheckFlowSpec } from './check.js';
 export type { MoveFlowOptions } from './move.js';
+export { handleMoveFlowSpec } from './move.js';
+export type { RemoveFlowOptions } from './remove.js';
+export { handleRemoveFlowSpec } from './remove.js';
+export { deriveIdFromPath, toRepoRelative } from './shared.js';
 
 export interface FlowSpecCommandConfig {
   name: string;

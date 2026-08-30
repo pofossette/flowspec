@@ -14,8 +14,8 @@ export const useThemeStore = create<ThemeStore>()(
       mode: 'system',
       setMode: (mode) => set({ mode }),
     }),
-    { name: 'flow-preview-theme' },
-  ),
+    { name: 'flow-preview-theme' }
+  )
 );
 
 export function useEffectiveTheme(mode: ThemeMode): 'light' | 'dark' {

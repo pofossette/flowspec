@@ -1,5 +1,5 @@
+import { Handle, type NodeProps, Position } from '@xyflow/react';
 import * as React from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
 
 /**
  * 社区包替代手搓：基于 xyflow/react-flow-mindmap-app 的 MindMapNode（MIT）
@@ -32,7 +32,7 @@ function useIsDark(): boolean {
 }
 
 export const CommunityMindMapNode = React.memo(function CommunityMindMapNode(
-  props: NodeProps,
+  props: NodeProps
 ): React.JSX.Element {
   const data = props.data as CommunityNodeData;
   const kind = data.kind ?? 'branch';

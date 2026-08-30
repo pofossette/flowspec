@@ -1,5 +1,5 @@
-import type { Command } from 'commander';
 import { releaseLock, resolveLockPath } from '@flowspec/lock';
+import type { Command } from 'commander';
 
 export function registerUnlockCommand(flow: Command): void {
   flow

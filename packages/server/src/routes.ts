@@ -23,7 +23,12 @@ export class FlowSpecError extends Error {
   }
 }
 export const InvocationError = FlowSpecError;
-export type RouteContext = { params?: Record<string, string>; query?: Record<string, unknown>; headers?: Record<string, unknown>; body?: unknown };
+export type RouteContext = {
+  params?: Record<string, string>;
+  query?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
+  body?: unknown;
+};
 export type RouteDef<C = RouteContext, D = unknown> = {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
@@ -31,8 +36,14 @@ export type RouteDef<C = RouteContext, D = unknown> = {
   successStatus?: number;
   handler(ctx: C, deps: D): Promise<unknown>;
 };
-import { flowSpecSchema } from '@flowspec/domain';
+
 import * as fs from 'node:fs';
+import {
+  extractBodyMarkdown,
+  flowSpecSchema,
+  isMarkdownFlowSpec,
+  parseFlowSpecFromMarkdown,
+} from '@flowspec/domain';
 import {
   acquireLock,
   getEmptySpecForPureMarkdown,
@@ -42,15 +53,10 @@ import {
   readRawSpecContent,
   releaseLock,
   resolveLockPath,
-  resolveSpecPath,
   resolveSpecBodyAndFrontmatter,
+  resolveSpecPath,
   saveSpecRaw,
 } from '@flowspec/lock';
-import {
-  extractBodyMarkdown,
-  isMarkdownFlowSpec,
-  parseFlowSpecFromMarkdown,
-} from '@flowspec/domain';
 
 export type FlowSpecRouteDeps = {
   flowspecDir?: string;
@@ -132,7 +138,7 @@ type LockReleaseCtx = {
 };
 
 export function createFlowSpecRouteDefs(
-  _deps: FlowSpecRouteDeps = {},
+  _deps: FlowSpecRouteDeps = {}
 ): RouteDef<RouteContext, FlowSpecRouteDeps>[] {
   return [
     flowRoute({
@@ -193,32 +199,28 @@ export function createFlowSpecRouteDefs(
         // if locked by others, reject
         const holderHeader =
           (c.headers?.['x-flow-lock-holder'] as string) ?? (c.headers?.['x-holder'] as string);
-        const bodyHolder = (c.body as Record<string, unknown> | null)?.['holder'] as
-          | string
-          | undefined;
+        const bodyHolder = (c.body as Record<string, unknown> | null)?.holder as string | undefined;
         const holder = holderHeader ?? bodyHolder;
         if (lock.locked && holder && lock.info.holder !== holder) {
           throw InvocationError.conflict(`flowspec "${id}" locked by "${lock.info.holder}"`);
         }
         // validate body is FlowSpec or { spec: FlowSpec }
         const rawBody = c.body as Record<string, unknown>;
-        const candidate = (rawBody['spec'] as unknown) ?? rawBody;
+        const candidate = (rawBody.spec as unknown) ?? rawBody;
         const parsed = flowSpecSchema.safeParse(candidate);
         if (!parsed.success)
           throw InvocationError.validation(`invalid FlowSpec: ${parsed.error.message}`);
         const incomingBodyMarkdown =
-          typeof rawBody['bodyMarkdown'] === 'string'
-            ? (rawBody['bodyMarkdown'] as string)
-            : undefined;
+          typeof rawBody.bodyMarkdown === 'string' ? (rawBody.bodyMarkdown as string) : undefined;
         const incomingLock =
-          rawBody['frontmatter'] && typeof rawBody['frontmatter'] === 'object'
-            ? (rawBody['frontmatter'] as Record<string, unknown>)
-            : rawBody['lock'] && typeof rawBody['lock'] === 'object'
-              ? (rawBody['lock'] as Record<string, unknown>)
+          rawBody.frontmatter && typeof rawBody.frontmatter === 'object'
+            ? (rawBody.frontmatter as Record<string, unknown>)
+            : rawBody.lock && typeof rawBody.lock === 'object'
+              ? (rawBody.lock as Record<string, unknown>)
               : undefined;
         const dataToSave: Record<string, unknown> = { ...parsed.data } as Record<string, unknown>;
-        if (incomingBodyMarkdown !== undefined) dataToSave['bodyMarkdown'] = incomingBodyMarkdown;
-        if (incomingLock !== undefined) dataToSave['lock'] = incomingLock;
+        if (incomingBodyMarkdown !== undefined) dataToSave.bodyMarkdown = incomingBodyMarkdown;
+        if (incomingLock !== undefined) dataToSave.lock = incomingLock;
         const savedPath = saveSpecRaw(id, dataToSave as unknown, dir);
         let latestBody = incomingBodyMarkdown ?? '';
         let latestFm: unknown = incomingLock ?? null;
@@ -305,8 +307,8 @@ export function createFlowSpecRouteDefs(
         const c = ctx as unknown as LockReleaseCtx; // lib type gap: RouteContext narrowing for flow-spec handler lock release
         const id = c.params.id;
         const dir = deps.flowspecDir ?? 'flowspec';
-        const holder = c.body?.holder ?? (c.query?.['holder'] as string | undefined);
-        const forceRaw = c.body?.force ?? (c.query?.['force'] as unknown);
+        const holder = c.body?.holder ?? (c.query?.holder as string | undefined);
+        const forceRaw = c.body?.force ?? (c.query?.force as unknown);
         const needForce = forceRaw === true || forceRaw === 'true' || !holder;
         try {
           releaseLock(id, holder, { force: needForce, flowspecDir: dir });

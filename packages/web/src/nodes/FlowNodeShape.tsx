@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { Handle, Position } from '@xyflow/react';
+import * as React from 'react';
 
 export type FlowNodeShapeData = {
   label: string;
@@ -69,7 +69,7 @@ function isDarkMode(): boolean {
 function resolveColors(
   kind: string,
   color: string | undefined,
-  bgColor: string | undefined,
+  bgColor: string | undefined
 ): { background: string; borderColor: string; textColor: string | undefined } {
   const dark = isDarkMode();
   const defs = dark ? KIND_DEFAULTS_DARK : KIND_DEFAULTS;
@@ -186,7 +186,7 @@ function StatusDot({ status }: { status: string }): React.JSX.Element | null {
 }
 
 export const FlowNodeShape = React.memo(function FlowNodeShape(
-  props: FlowNodeShapeProps,
+  props: FlowNodeShapeProps
 ): React.JSX.Element {
   const { data, selected } = props;
   const kind = data.kind ?? 'branch';
@@ -355,7 +355,7 @@ export const FlowNodeShape = React.memo(function FlowNodeShape(
       />
       <div
         style={{ ...base, ...outerShadow }}
-        title={contentText ? `${data.label}${contentText ? ' — ' + contentText : ''}` : data.label}
+        title={contentText ? `${data.label}${contentText ? ` — ${contentText}` : ''}` : data.label}
         data-kind={kind}
         data-selected={selected ? 'true' : 'false'}
       >

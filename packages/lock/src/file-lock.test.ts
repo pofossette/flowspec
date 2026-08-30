@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { flowSpecExample } from '@flowspec/domain';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   acquireLock,
   getLockStatus,
@@ -12,7 +13,6 @@ import {
   resolveSpecPath,
   saveSpecRaw,
 } from './file-lock.js';
-import { flowSpecExample } from '@flowspec/domain';
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'flowspec-test-'));

@@ -1,10 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { flowSpecSchema, safeParseFlowSpec } from '@flowspec/domain';
 import {
   isMarkdownFlowSpec,
   parseFlowSpecFromMarkdown,
+  safeParseFlowSpec,
   serializeFlowSpecToMarkdown,
 } from '@flowspec/domain';
 import { ensureRegistryDir, resolveRegistryDir } from '@flowspec/registry';
@@ -83,7 +83,7 @@ export function writeSpec(file: string, data: unknown): void {
   fs.mkdirSync(path.dirname(abs), { recursive: true });
   if (abs.endsWith('.md')) {
     const maybe = data as Record<string, unknown>;
-    const looksSpec = maybe && typeof maybe['rootId'] === 'string' && Array.isArray(maybe['nodes']);
+    const looksSpec = maybe && typeof maybe.rootId === 'string' && Array.isArray(maybe.nodes);
     if (looksSpec) {
       const res = safeParseFlowSpec(data);
       if (res.success) {
@@ -100,7 +100,7 @@ export function writeSpec(file: string, data: unknown): void {
     fs.writeFileSync(abs, data, 'utf-8');
     return;
   }
-  fs.writeFileSync(abs, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  fs.writeFileSync(abs, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
 }
 
 export function defaultHolder(): string {

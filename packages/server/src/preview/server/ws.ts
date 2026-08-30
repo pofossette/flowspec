@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { FastifyInstance } from 'fastify';
+import { flowSpecSchema } from '@flowspec/domain';
 import {
   getLockStatus,
   loadSpecRaw,
@@ -8,7 +8,7 @@ import {
   resolveSpecPath,
   saveSpecRaw,
 } from '@flowspec/lock';
-import { flowSpecSchema } from '@flowspec/domain';
+import type { FastifyInstance } from 'fastify';
 import {
   broadcast,
   ensureFileWatcher,
@@ -78,7 +78,7 @@ export function registerWsRoutes(app: FastifyInstance, flowspecDir: string): voi
     try {
       const dirOfSpec = path.dirname(specPath);
       if (fs.existsSync(dirOfSpec)) {
-        const w = fs.watch(dirOfSpec, (evt, name) => {
+        const w = fs.watch(dirOfSpec, (_evt, name) => {
           if (!name) return;
           if (name === path.basename(specPath) || name === path.basename(lockPath)) {
             setTimeout(() => {
@@ -87,7 +87,7 @@ export function registerWsRoutes(app: FastifyInstance, flowspecDir: string): voi
                 if (cur !== lastSpecMtime) {
                   lastSpecMtime = cur;
                   reply.raw.write(
-                    `event: update\ndata: ${JSON.stringify({ ts: Date.now(), specChanged: true })}\n\n`,
+                    `event: update\ndata: ${JSON.stringify({ ts: Date.now(), specChanged: true })}\n\n`
                   );
                 }
               } catch {}
@@ -119,7 +119,7 @@ export function registerWsRoutes(app: FastifyInstance, flowspecDir: string): voi
     const dir = resolveEffectiveDir(
       decodedId,
       url.searchParams.get('dir') ?? flowspecDir,
-      flowspecDir,
+      flowspecDir
     );
     const holder = url.searchParams.get('holder') ?? 'web:unknown';
     const room = getRoom(decodedId, dir);
@@ -136,7 +136,7 @@ export function registerWsRoutes(app: FastifyInstance, flowspecDir: string): voi
             spec: parsed?.success ? parsed.data : null,
             lock,
             holder,
-          }),
+          })
         );
       } catch {}
     }, 30);
@@ -165,7 +165,7 @@ export function registerWsRoutes(app: FastifyInstance, flowspecDir: string): voi
               lock: getLockStatus(decodedId, dir),
               from: senderHolder,
             },
-            socket,
+            socket
           );
           socket.send(JSON.stringify({ type: 'ack', ts: Date.now() }));
         } else if (msg.type === 'ping') {

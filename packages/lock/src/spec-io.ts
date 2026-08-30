@@ -2,14 +2,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
   extractBodyMarkdown,
+  type FlowSpecLock,
+  flowSpecSchema,
   isMarkdownFlowSpec,
   parseFlowSpecFromMarkdown,
   serializeFlowSpecToMarkdown,
-  type FlowSpecLock,
 } from '@flowspec/domain';
-import { flowSpecSchema } from '@flowspec/domain';
-import { atomicWriteFileSync } from './helpers.js';
 import { readLockFromMarkdown } from './frontmatter.js';
+import { atomicWriteFileSync } from './helpers.js';
 import { resolveSpecPath } from './paths.js';
 
 const DEFAULT_DIR = 'flowspec';
@@ -18,9 +18,9 @@ export function loadSpecRaw(id: string, flowspecDir = DEFAULT_DIR): unknown | nu
   const p = resolveSpecPath(id, flowspecDir);
   if (!fs.existsSync(p)) {
     const alt = p.endsWith('.md')
-      ? p.slice(0, -3) + '.json'
+      ? `${p.slice(0, -3)}.json`
       : p.endsWith('.json')
-        ? p.slice(0, -5) + '.md'
+        ? `${p.slice(0, -5)}.md`
         : null;
     if (alt && fs.existsSync(alt)) {
       try {
@@ -63,7 +63,7 @@ export function saveSpecRaw(id: string, data: unknown, flowspecDir = DEFAULT_DIR
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const maybeSpec = data as Record<string, unknown>;
   const looksLikeSpec =
-    maybeSpec && typeof maybeSpec['rootId'] === 'string' && Array.isArray(maybeSpec['nodes']);
+    maybeSpec && typeof maybeSpec.rootId === 'string' && Array.isArray(maybeSpec.nodes);
   if (looksLikeSpec && p.endsWith('.md')) {
     const parsed = flowSpecSchema.safeParse(data);
     if (parsed.success) {
@@ -71,12 +71,10 @@ export function saveSpecRaw(id: string, data: unknown, flowspecDir = DEFAULT_DIR
       let existingLock: Partial<FlowSpecLock> | undefined;
       const dataAny = data as Record<string, unknown>;
       const overrideBody =
-        typeof dataAny['bodyMarkdown'] === 'string'
-          ? (dataAny['bodyMarkdown'] as string)
-          : undefined;
+        typeof dataAny.bodyMarkdown === 'string' ? (dataAny.bodyMarkdown as string) : undefined;
       const overrideLock =
-        dataAny['lock'] && typeof dataAny['lock'] === 'object' && !Array.isArray(dataAny['lock'])
-          ? (dataAny['lock'] as Partial<FlowSpecLock>)
+        dataAny.lock && typeof dataAny.lock === 'object' && !Array.isArray(dataAny.lock)
+          ? (dataAny.lock as Partial<FlowSpecLock>)
           : undefined;
       if (fs.existsSync(p)) {
         try {
@@ -103,7 +101,7 @@ export function saveSpecRaw(id: string, data: unknown, flowspecDir = DEFAULT_DIR
         ...(lock ? { lock } : {}),
       });
       atomicWriteFileSync(p, md);
-      const alt = p.slice(0, -3) + '.json';
+      const alt = `${p.slice(0, -3)}.json`;
       if (fs.existsSync(alt)) {
         try {
           fs.unlinkSync(alt);
@@ -117,7 +115,7 @@ export function saveSpecRaw(id: string, data: unknown, flowspecDir = DEFAULT_DIR
     const msg = parsed.success ? 'unknown' : parsed.error.message;
     throw new Error(`invalid FlowSpec for "${id}": ${msg} — refusing to write JSON into .md`);
   }
-  atomicWriteFileSync(p, JSON.stringify(data, null, 2) + '\n');
+  atomicWriteFileSync(p, `${JSON.stringify(data, null, 2)}\n`);
   return p;
 }
 
@@ -125,8 +123,8 @@ export function readRawSpecContent(specPath: string): string | null {
   try {
     if (fs.existsSync(specPath)) return fs.readFileSync(specPath, 'utf-8');
     const alt = specPath.endsWith('.md')
-      ? specPath.slice(0, -3) + '.json'
-      : specPath.slice(0, -5) + '.md';
+      ? `${specPath.slice(0, -3)}.json`
+      : `${specPath.slice(0, -5)}.md`;
     if (alt && fs.existsSync(alt)) return fs.readFileSync(alt, 'utf-8');
   } catch {}
   return null;
@@ -134,10 +132,10 @@ export function readRawSpecContent(specPath: string): string | null {
 
 export function getEmptySpecForPureMarkdown(
   rawContent: string,
-  fallbackId: string,
+  fallbackId: string
 ): { spec: Record<string, unknown>; bodyMarkdown: string; frontmatter: FlowSpecLock | null } {
   const titleMatch = rawContent.match(/^#\s+(.+)$/m);
-  const title = titleMatch ? titleMatch[1]!.trim() : fallbackId;
+  const title = titleMatch ? titleMatch[1]?.trim() : fallbackId;
   const fm = readLockFromMarkdown(rawContent);
   const bodyMarkdown = extractBodyMarkdown(rawContent) || rawContent.trim();
   const spec: Record<string, unknown> = {
@@ -154,15 +152,15 @@ export function getEmptySpecForPureMarkdown(
 
 export function resolveSpecBodyAndFrontmatter(
   raw: unknown,
-  rawContent: string | null,
+  rawContent: string | null
 ): { bodyMarkdown: string; frontmatter: FlowSpecLock | null } {
   const rawRec = raw as Record<string, unknown>;
   const bodyMarkdown =
-    (typeof rawRec['bodyMarkdown'] === 'string' ? (rawRec['bodyMarkdown'] as string) : undefined) ??
+    (typeof rawRec.bodyMarkdown === 'string' ? (rawRec.bodyMarkdown as string) : undefined) ??
     (rawContent
       ? (parseFlowSpecFromMarkdown(rawContent)?.bodyMarkdown ?? extractBodyMarkdown(rawContent))
       : '');
-  const maybeLock = rawRec['lock'];
+  const maybeLock = rawRec.lock;
   const frontmatter =
     maybeLock && typeof maybeLock === 'object' && !Array.isArray(maybeLock)
       ? (maybeLock as FlowSpecLock)
@@ -174,7 +172,7 @@ export function resolveSpecBodyAndFrontmatter(
 
 export function loadSpecMarkdown(id: string, flowspecDir = DEFAULT_DIR): string | null {
   const p = resolveSpecPath(id, flowspecDir);
-  const candidates = [p, p.endsWith('.md') ? p.slice(0, -3) + '.json' : p.slice(0, -5) + '.md'];
+  const candidates = [p, p.endsWith('.md') ? `${p.slice(0, -3)}.json` : `${p.slice(0, -5)}.md`];
   for (const c of candidates) {
     if (!c || !fs.existsSync(c)) continue;
     try {
@@ -183,9 +181,7 @@ export function loadSpecMarkdown(id: string, flowspecDir = DEFAULT_DIR): string 
       const parsed = flowSpecSchema.safeParse(JSON.parse(raw));
       if (parsed.success) return serializeFlowSpecToMarkdown(parsed.data);
       return raw;
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   return null;
 }

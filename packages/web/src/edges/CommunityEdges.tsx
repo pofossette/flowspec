@@ -1,12 +1,12 @@
-import * as React from 'react';
 import {
   BaseEdge,
   EdgeLabelRenderer,
+  type EdgeProps,
   getBezierPath,
   getSmoothStepPath,
   getStraightPath,
-  type EdgeProps,
 } from '@xyflow/react';
+import type * as React from 'react';
 
 /**
  * 社区包替代手搓边：保留 CommunityMindMapNode 的统一卡片形态，
@@ -22,7 +22,11 @@ function EdgeLabel({
   labelX,
   labelY,
   label,
-}: { labelX: number; labelY: number; label: string | undefined }): React.JSX.Element | null {
+}: {
+  labelX: number;
+  labelY: number;
+  label: string | undefined;
+}): React.JSX.Element | null {
   if (!label) return null;
   const isDark = isDarkMode();
   return (

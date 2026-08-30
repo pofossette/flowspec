@@ -307,7 +307,7 @@ describe('flow-spec markdown block syntax', () => {
     expect(isMarkdownFlowSpec(legacy)).toBe(true);
     expect(isMarkdownFlowSpec('# just markdown')).toBe(false);
     expect(
-      isMarkdownFlowSpec('^^^block\ntype: node\nid: a\nkind: branch\nlabel: B\n---\n^^^'),
+      isMarkdownFlowSpec('^^^block\ntype: node\nid: a\nkind: branch\nlabel: B\n---\n^^^')
     ).toBe(true);
   });
 

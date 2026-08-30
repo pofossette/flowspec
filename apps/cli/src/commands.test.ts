@@ -1,14 +1,15 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import {
+  flowSpecExample,
+  parseFlowSpecFromMarkdown,
+  serializeFlowSpecToMarkdown,
+} from '@flowspec/domain';
+import { readLockFromMarkdown } from '@flowspec/lock';
+import { loadMark, loadPreview } from '@flowspec/registry';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  serializeFlowSpecToMarkdown,
-  parseFlowSpecFromMarkdown,
-  stripBlocks,
-} from '@flowspec/domain';
-import { flowSpecExample } from '@flowspec/domain';
 import {
   deriveIdFromPath,
   handleAddFlowSpec,
@@ -18,8 +19,6 @@ import {
   registerFlowSpecCommands,
   toRepoRelative,
 } from './commands/index.js';
-import { loadMark, loadPreview } from '@flowspec/registry';
-import { readLockFromMarkdown } from '@flowspec/lock';
 
 function tmpRoot(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'flow-cli-test-'));
@@ -69,8 +68,8 @@ describe('flow add', () => {
     expect(res.id).toBe('demo');
     expect(res.relPath).toBe('flowspec/demo.md');
     const mark = loadMark(root);
-    expect(mark.entries['demo']).toBeDefined();
-    expect(mark.entries['demo']?.title).toBe('Demo MD');
+    expect(mark.entries.demo).toBeDefined();
+    expect(mark.entries.demo?.title).toBe('Demo MD');
     expect(fs.existsSync(path.join(root, '.flowspec', 'mark.json'))).toBe(true);
     // no tmp leftover
     const files = fs.readdirSync(path.join(root, '.flowspec'));
@@ -93,8 +92,8 @@ describe('flow add', () => {
     const file = path.join(dir, 'demo.md');
     fs.writeFileSync(file, mkValidMd({ title: 'Demo MD' }), 'utf-8');
     handleAddFlowSpec(file, { preview: true, root });
-    expect(loadMark(root).entries['demo']).toBeDefined();
-    expect(loadPreview(root).entries['demo']).toBeDefined();
+    expect(loadMark(root).entries.demo).toBeDefined();
+    expect(loadPreview(root).entries.demo).toBeDefined();
   });
 
   it('add warns but still registers when file not under flowspec/', () => {
@@ -103,14 +102,14 @@ describe('flow add', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const res = handleAddFlowSpec(file, { root });
     expect(res.relPath).toBe('other.md');
-    expect(loadMark(root).entries['other']).toBeDefined();
+    expect(loadMark(root).entries.other).toBeDefined();
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
   });
 
   it('add error — file not found', () => {
     expect(() => handleAddFlowSpec(path.join(root, 'missing.md'), { root })).toThrow(
-      /File not found/,
+      /File not found/
     );
   });
 
@@ -190,7 +189,7 @@ describe('flow check', () => {
     const results = handleCheckFlowSpec('valid', { root });
     expect(results[0]?.ok).toBe(false);
     expect(results[0]?.errors.join('')).toMatch(
-      /not found|target|parseFlowSpecFromMarkdown failed/,
+      /not found|target|parseFlowSpecFromMarkdown failed/
     );
   });
 
@@ -255,12 +254,12 @@ describe('flow remove', () => {
     const file = path.join(dir, 'demo.md');
     fs.writeFileSync(file, mkValidMd(), 'utf-8');
     handleAddFlowSpec(file, { root, preview: true });
-    expect(loadMark(root).entries['demo']).toBeDefined();
-    expect(loadPreview(root).entries['demo']).toBeDefined();
+    expect(loadMark(root).entries.demo).toBeDefined();
+    expect(loadPreview(root).entries.demo).toBeDefined();
     const res = handleRemoveFlowSpec('demo', { root });
     expect(res.removedMark).toBe(true);
-    expect(loadMark(root).entries['demo']).toBeUndefined();
-    expect(loadPreview(root).entries['demo']).toBeUndefined();
+    expect(loadMark(root).entries.demo).toBeUndefined();
+    expect(loadPreview(root).entries.demo).toBeUndefined();
     expect(fs.existsSync(file)).toBe(true);
   });
 
@@ -331,10 +330,10 @@ describe('flow move', () => {
     expect(res.destId).toBe('renamed');
     expect(fs.existsSync(src)).toBe(false);
     expect(fs.existsSync(dest)).toBe(true);
-    expect(loadMark(root).entries['demo']).toBeUndefined();
-    expect(loadMark(root).entries['renamed']).toBeDefined();
-    expect(loadMark(root).entries['renamed']?.path).toBe('flowspec/renamed.md');
-    expect(loadPreview(root).entries['renamed']).toBeDefined();
+    expect(loadMark(root).entries.demo).toBeUndefined();
+    expect(loadMark(root).entries.renamed).toBeDefined();
+    expect(loadMark(root).entries.renamed?.path).toBe('flowspec/renamed.md');
+    expect(loadPreview(root).entries.renamed).toBeDefined();
   });
 
   it('move cross-directory', () => {
@@ -346,8 +345,8 @@ describe('flow move', () => {
     handleAddFlowSpec(src, { root });
     handleMoveFlowSpec(src, dest, { root });
     expect(fs.existsSync(dest)).toBe(true);
-    expect(loadMark(root).entries['nested']).toBeDefined();
-    expect(loadMark(root).entries['nested']?.path).toBe('flowspec/team/nested.md');
+    expect(loadMark(root).entries.nested).toBeDefined();
+    expect(loadMark(root).entries.nested?.path).toBe('flowspec/team/nested.md');
   });
 
   it('move error — dest exists', () => {
@@ -378,7 +377,7 @@ describe('flow move', () => {
 
   it('move error — src not found', () => {
     expect(() =>
-      handleMoveFlowSpec(path.join(root, 'nope.md'), path.join(root, 'dest.md'), { root }),
+      handleMoveFlowSpec(path.join(root, 'nope.md'), path.join(root, 'dest.md'), { root })
     ).toThrow(/Source not found/);
   });
 
@@ -405,10 +404,10 @@ describe('flow move', () => {
     handleAddFlowSpec(src, { root, preview: true });
     const dest = path.join(dir, 'renamed.md');
     handleMoveFlowSpec(src, dest, { root });
-    expect(loadMark(root).entries['renamed']).toBeDefined();
-    expect(loadPreview(root).entries['renamed']).toBeDefined();
-    expect(loadMark(root).entries['demo']).toBeUndefined();
-    expect(loadPreview(root).entries['demo']).toBeUndefined();
+    expect(loadMark(root).entries.renamed).toBeDefined();
+    expect(loadPreview(root).entries.renamed).toBeDefined();
+    expect(loadMark(root).entries.demo).toBeUndefined();
+    expect(loadPreview(root).entries.demo).toBeUndefined();
   });
 });
 

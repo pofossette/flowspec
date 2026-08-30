@@ -35,6 +35,24 @@ pnpm typecheck
 pnpm test
 ```
 
+## 质量门禁
+
+| 工具 | 作用 | 配置 | 命令 |
+|------|------|------|------|
+| `tsc` | 类型检查（全 monorepo） | `tsconfig.base.json` + 各包 `tsconfig.json` | `pnpm typecheck` / `pnpm -r typecheck` |
+| `Biome` | 格式化 + Lint（含 organizeImports） | `biome.json` | `pnpm lint` / `pnpm lint:fix` / `pnpm format` |
+| `Fallow` | 未用代码/依赖、复杂度、重复、健康度 | `.fallowrc.json` | `pnpm fallow` / `pnpm fallow:dead` / `pnpm fallow:health` / `pnpm fallow:dupes` |
+| `jscpd` | 重复代码块（阈值 8%） | `.jscpd.json` | `pnpm jscpd` / `pnpm jscpd:report` |
+
+常用组合：
+
+```bash
+pnpm check        # typecheck + lint + fallow:dead + jscpd
+pnpm quality      # typecheck + lint + fallow 全量
+pnpm lint:fix     # 自动修复 biome
+pnpm fallow       # 完整健康报告（dead + dupes + health）
+```
+
 ## 迁移说明
 
 - 零依赖 `@trapmap/*`，`server/routes` 已去 `InvocationError` 改本地 `FlowSpecError`。

@@ -62,21 +62,21 @@ function parseNodeBlock(block: string): FlowNode | null {
   const headMatch = block.match(/<node\b[^>]*>/);
   if (!headMatch) return null;
   const attrs = parseAttrs(headMatch[0]!);
-  const id = attrs['id'];
-  const kind = (attrs['kind'] as FlowNode['kind']) ?? 'branch';
-  const label = attrs['label'];
+  const id = attrs.id;
+  const kind = (attrs.kind as FlowNode['kind']) ?? 'branch';
+  const label = attrs.label;
   if (!id || !label) return null;
-  const status = attrs['status'] as FlowNode['status'] | undefined;
-  const collapsed = attrs['collapsed'] === 'true' ? true : undefined;
-  const x = attrs['x'] !== undefined ? Number(attrs['x']) : undefined;
-  const y = attrs['y'] !== undefined ? Number(attrs['y']) : undefined;
+  const status = attrs.status as FlowNode['status'] | undefined;
+  const collapsed = attrs.collapsed === 'true' ? true : undefined;
+  const x = attrs.x !== undefined ? Number(attrs.x) : undefined;
+  const y = attrs.y !== undefined ? Number(attrs.y) : undefined;
   const position =
     x !== undefined && y !== undefined && !Number.isNaN(x) && !Number.isNaN(y)
       ? { x, y }
       : undefined;
-  const color = attrs['color'];
-  const bgColor = attrs['bgColor'];
-  const icon = attrs['icon'];
+  const color = attrs.color;
+  const bgColor = attrs.bgColor;
+  const icon = attrs.icon;
   const style =
     color !== undefined || bgColor !== undefined || icon !== undefined
       ? {
@@ -88,12 +88,12 @@ function parseNodeBlock(block: string): FlowNode | null {
 
   let content: string | undefined;
   const cMatch = block.match(/<content>([\s\S]*?)<\/content>/);
-  if (cMatch) content = unesc(cMatch[1]!.trim());
+  if (cMatch) content = unesc(cMatch[1]?.trim());
 
   let data: Record<string, unknown> | undefined;
   const dMatch = block.match(/<data>([\s\S]*?)<\/data>/);
   if (dMatch) {
-    const raw = unesc(dMatch[1]!.trim());
+    const raw = unesc(dMatch[1]?.trim());
     try {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object') data = parsed as Record<string, unknown>;
@@ -120,16 +120,16 @@ function parseEdgeBlock(block: string): FlowEdge | null {
   const m = block.match(/<edge\b[^>]*\/?>/);
   if (!m) return null;
   const attrs = parseAttrs(m[0]!);
-  const id = attrs['id'];
-  const source = attrs['source'];
-  const target = attrs['target'];
+  const id = attrs.id;
+  const source = attrs.source;
+  const target = attrs.target;
   if (!id || !source || !target) return null;
-  const kind = (attrs['kind'] as FlowEdge['kind']) ?? 'hierarchical';
-  const label = attrs['label'];
-  const directed = attrs['directed'] === 'false' ? false : true;
-  const edgeColor = attrs['color'];
-  const widthRaw = attrs['width'];
-  const dash = attrs['dash'];
+  const kind = (attrs.kind as FlowEdge['kind']) ?? 'hierarchical';
+  const label = attrs.label;
+  const directed = attrs.directed !== 'false';
+  const edgeColor = attrs.color;
+  const widthRaw = attrs.width;
+  const dash = attrs.dash;
   const width = widthRaw !== undefined ? Number(widthRaw) : undefined;
   const style =
     edgeColor !== undefined || (width !== undefined && !Number.isNaN(width)) || dash !== undefined
@@ -141,7 +141,7 @@ function parseEdgeBlock(block: string): FlowEdge | null {
       : undefined;
   let content: string | undefined;
   const cMatch = block.match(/<content>([\s\S]*?)<\/content>/);
-  if (cMatch) content = unesc(cMatch[1]!.trim());
+  if (cMatch) content = unesc(cMatch[1]?.trim());
   return {
     id,
     source,
@@ -211,40 +211,34 @@ function parseFrontmatter(md: string): {
   } catch {
     parsed = {};
   }
-  const lockedRaw = parsed['locked'];
+  const lockedRaw = parsed.locked;
   const locked = lockedRaw === true || lockedRaw === 'true';
   const lock: FlowSpecLock = {
     locked,
-    ...(typeof parsed['holder'] === 'string' && parsed['holder']
-      ? { holder: parsed['holder'] }
+    ...(typeof parsed.holder === 'string' && parsed.holder ? { holder: parsed.holder } : {}),
+    ...(typeof parsed.note === 'string' && parsed.note ? { note: parsed.note } : {}),
+    ...(typeof parsed.lockReason === 'string' && parsed.lockReason
+      ? { lockReason: parsed.lockReason }
       : {}),
-    ...(typeof parsed['note'] === 'string' && parsed['note'] ? { note: parsed['note'] } : {}),
-    ...(typeof parsed['lockReason'] === 'string' && parsed['lockReason']
-      ? { lockReason: parsed['lockReason'] }
+    ...(typeof parsed.acquiredAt === 'string' && parsed.acquiredAt
+      ? { acquiredAt: parsed.acquiredAt }
       : {}),
-    ...(typeof parsed['acquiredAt'] === 'string' && parsed['acquiredAt']
-      ? { acquiredAt: parsed['acquiredAt'] }
+    ...(typeof parsed.expiresAt === 'string' && parsed.expiresAt
+      ? { expiresAt: parsed.expiresAt }
       : {}),
-    ...(typeof parsed['expiresAt'] === 'string' && parsed['expiresAt']
-      ? { expiresAt: parsed['expiresAt'] }
+    ...(typeof parsed.version === 'string' && parsed.version ? { version: parsed.version } : {}),
+    ...(typeof parsed.rootId === 'string' && parsed.rootId ? { rootId: parsed.rootId } : {}),
+    ...(typeof parsed.title === 'string' && parsed.title ? { title: parsed.title } : {}),
+    ...(typeof parsed.createdAt === 'string' && parsed.createdAt
+      ? { createdAt: parsed.createdAt }
       : {}),
-    ...(typeof parsed['version'] === 'string' && parsed['version']
-      ? { version: parsed['version'] }
-      : {}),
-    ...(typeof parsed['rootId'] === 'string' && parsed['rootId']
-      ? { rootId: parsed['rootId'] }
-      : {}),
-    ...(typeof parsed['title'] === 'string' && parsed['title'] ? { title: parsed['title'] } : {}),
-    ...(typeof parsed['createdAt'] === 'string' && parsed['createdAt']
-      ? { createdAt: parsed['createdAt'] }
-      : {}),
-    ...(typeof parsed['updatedAt'] === 'string' && parsed['updatedAt']
-      ? { updatedAt: parsed['updatedAt'] }
+    ...(typeof parsed.updatedAt === 'string' && parsed.updatedAt
+      ? { updatedAt: parsed.updatedAt }
       : {}),
   };
   // ensure version default
   if (!lock.version) lock.version = '1.0.0';
-  const remaining = md.slice(match[0]!.length);
+  const remaining = md.slice(match[0]?.length);
   return { lock, remaining, rawFrontmatter: parsed };
 }
 
@@ -252,16 +246,16 @@ function serializeFrontmatter(lock: FlowSpecLock): string {
   const obj: Record<string, unknown> = {
     locked: lock.locked,
   };
-  if (lock.holder) obj['holder'] = lock.holder;
-  if (lock.note) obj['note'] = lock.note;
-  if (lock.lockReason) obj['lockReason'] = lock.lockReason;
-  if (lock.acquiredAt) obj['acquiredAt'] = lock.acquiredAt;
-  if (lock.expiresAt) obj['expiresAt'] = lock.expiresAt;
-  if (lock.version) obj['version'] = lock.version;
-  if (lock.rootId) obj['rootId'] = lock.rootId;
-  if (lock.title) obj['title'] = lock.title;
-  if (lock.createdAt) obj['createdAt'] = lock.createdAt;
-  if (lock.updatedAt) obj['updatedAt'] = lock.updatedAt;
+  if (lock.holder) obj.holder = lock.holder;
+  if (lock.note) obj.note = lock.note;
+  if (lock.lockReason) obj.lockReason = lock.lockReason;
+  if (lock.acquiredAt) obj.acquiredAt = lock.acquiredAt;
+  if (lock.expiresAt) obj.expiresAt = lock.expiresAt;
+  if (lock.version) obj.version = lock.version;
+  if (lock.rootId) obj.rootId = lock.rootId;
+  if (lock.title) obj.title = lock.title;
+  if (lock.createdAt) obj.createdAt = lock.createdAt;
+  if (lock.updatedAt) obj.updatedAt = lock.updatedAt;
   const y = yaml.stringify(obj).trimEnd();
   return `---\n${y}\n---\n`;
 }
@@ -306,7 +300,7 @@ export function parseBlocks(md: string): ParsedBlocks {
     }
     const yamlObj = parseYamlHead(headRaw);
     if (!yamlObj) continue;
-    const type = typeof yamlObj['type'] === 'string' ? (yamlObj['type'] as string) : undefined;
+    const type = typeof yamlObj.type === 'string' ? (yamlObj.type as string) : undefined;
     if (type === 'node') {
       const n = rawBlockToNode(yamlObj, body);
       if (n) nodes.push(n);
@@ -355,25 +349,25 @@ export function extractBodyMarkdown(md: string): string {
   const lines = withoutBlocks.split('\n');
   let idx = 0;
   // skip leading empty
-  while (idx < lines.length && lines[idx]!.trim() === '') idx++;
+  while (idx < lines.length && lines[idx]?.trim() === '') idx++;
   // skip title
-  if (idx < lines.length && lines[idx]!.startsWith('# ')) {
+  if (idx < lines.length && lines[idx]?.startsWith('# ')) {
     idx++;
     // skip empty after title
-    while (idx < lines.length && lines[idx]!.trim() === '') idx++;
+    while (idx < lines.length && lines[idx]?.trim() === '') idx++;
     // skip blockquote description lines
-    while (idx < lines.length && lines[idx]!.startsWith('> ')) {
+    while (idx < lines.length && lines[idx]?.startsWith('> ')) {
       idx++;
     }
     // skip one empty after description
-    while (idx < lines.length && lines[idx]!.trim() === '') {
+    while (idx < lines.length && lines[idx]?.trim() === '') {
       // only skip one? but we trim overall
       // break after first empty grouping: actually include body after
       // If there are remaining blockquote version lines, they were already covered; now idx points to body
       break;
     }
     // skip empty
-    while (idx < lines.length && lines[idx]!.trim() === '') idx++;
+    while (idx < lines.length && lines[idx]?.trim() === '') idx++;
   } else {
     // no title header: return whatever remains (could be body); for legacy files without title
     // we keep content as-is rather than clobbering on "## Graph" or "<flow-spec"
@@ -397,7 +391,7 @@ export function stripBlocks(md: string): string {
   const { remaining } = parseFrontmatter(md);
   const stripped = remaining.replace(createBlockRe(), '');
   // Collapse multiple blank lines to at most 2
-  return stripped.replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+  return `${stripped.replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
 
 // ---------------------------------------------------------------------------
@@ -500,7 +494,7 @@ export function serializeLegacyMarkdown(spec: FlowSpec): string {
  */
 export function serializeFlowSpecToMarkdown(
   spec: FlowSpec,
-  opts?: SerializeOptions | string,
+  opts?: SerializeOptions | string
 ): string {
   const options: SerializeOptions =
     typeof opts === 'string' ? { bodyMarkdown: opts } : (opts ?? {});
@@ -529,7 +523,7 @@ export function serializeFlowSpecToMarkdown(
     for (const l of spec.description.split('\n')) lines.push(`> ${l}`);
     lines.push('');
   }
-  if (options.bodyMarkdown && options.bodyMarkdown.trim()) {
+  if (options.bodyMarkdown?.trim()) {
     lines.push(options.bodyMarkdown.trim());
     lines.push('');
   }
@@ -545,8 +539,8 @@ function parseLegacyXml(md: string): FlowSpec | null {
   if (!flowMatch) return null;
   const openTag = md.match(/<flow-spec\b[^>]*>/)?.[0] ?? '';
   const openAttrs = parseAttrs(openTag);
-  const version = openAttrs['version'] ?? '1.0.0';
-  const rootId = openAttrs['rootId'] ?? '';
+  const version = openAttrs.version ?? '1.0.0';
+  const rootId = openAttrs.rootId ?? '';
   if (!rootId) return null;
   const inner = flowMatch[1] ?? '';
 
@@ -554,7 +548,7 @@ function parseLegacyXml(md: string): FlowSpec | null {
   const metaMatch = inner.match(/<meta\b[^>]*\/?>/);
   if (metaMatch) {
     const ma = parseAttrs(metaMatch[0]!);
-    const tagsRaw = ma['tags'];
+    const tagsRaw = ma.tags;
     const tags = tagsRaw
       ? tagsRaw
           .split(',')
@@ -562,9 +556,9 @@ function parseLegacyXml(md: string): FlowSpec | null {
           .filter(Boolean)
       : undefined;
     meta = {
-      ...(ma['author'] ? { author: ma['author'] } : {}),
+      ...(ma.author ? { author: ma.author } : {}),
       ...(tags ? { tags } : {}),
-      ...(ma['specRef'] ? { specRef: ma['specRef'] } : {}),
+      ...(ma.specRef ? { specRef: ma.specRef } : {}),
     };
     if (Object.keys(meta).length === 0) meta = undefined;
   }
@@ -572,13 +566,13 @@ function parseLegacyXml(md: string): FlowSpec | null {
   let updatedAt: string | undefined;
   if (metaMatch) {
     const ma = parseAttrs(metaMatch[0]!);
-    if (ma['createdAt']) createdAt = ma['createdAt'];
-    if (ma['updatedAt']) updatedAt = ma['updatedAt'];
+    if (ma.createdAt) createdAt = ma.createdAt;
+    if (ma.updatedAt) updatedAt = ma.updatedAt;
   }
 
   let title = '';
   const titleMatch = md.match(/^#\s+(.+)$/m);
-  if (titleMatch) title = titleMatch[1]!.trim();
+  if (titleMatch) title = titleMatch[1]?.trim();
   let description: string | undefined;
   const lines = md.split('\n');
   let inDesc = false;
@@ -596,7 +590,6 @@ function parseLegacyXml(md: string): FlowSpec | null {
         if (c.startsWith('version:') || c.startsWith('created:') || c.startsWith('root:')) continue;
         descLines.push(c);
       } else if (line.trim() === '' && descLines.length === 0) {
-        continue;
       } else if (line.trim() === '' || line.startsWith('## ') || line.startsWith('<flow-spec')) {
         break;
       }
@@ -641,7 +634,7 @@ export function parseFlowSpecFromMarkdown(md: string): ParsedFlowSpec | null {
   // Title / description extraction from remaining (without frontmatter)
   let title = lock.title ?? '';
   const titleMatch = remaining.match(/^#\s+(.+)$/m);
-  if (titleMatch) title = titleMatch[1]!.trim();
+  if (titleMatch) title = titleMatch[1]?.trim();
 
   let description: string | undefined;
   const lines = remaining.split('\n');
@@ -660,7 +653,6 @@ export function parseFlowSpecFromMarkdown(md: string): ParsedFlowSpec | null {
         if (c.startsWith('version:') || c.startsWith('created:') || c.startsWith('root:')) continue;
         descLines.push(c);
       } else if (line.trim() === '' && descLines.length === 0) {
-        continue;
       } else if (
         line.trim() === '' ||
         line.startsWith('## ') ||

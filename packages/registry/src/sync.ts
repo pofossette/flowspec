@@ -1,7 +1,7 @@
 import * as path from 'node:path';
+import { atomicWrite, deriveId, readRegistryFile, tryParseSpec, walkFiles } from './helpers.js';
 import { ensureRegistryDir, markPath, previewPath } from './paths.js';
 import { nowIso, type Registry } from './types.js';
-import { atomicWrite, deriveId, readRegistryFile, tryParseSpec, walkFiles } from './helpers.js';
 
 export interface SyncOptions {
   flowspecDir?: string;
@@ -30,7 +30,7 @@ export function syncFromFilesystem(root?: string, opts: SyncOptions = {}): Regis
     if (seenIds.has(id)) {
       if (absFile.endsWith('.json')) {
         console.warn(
-          `[flow-spec] syncFromFilesystem: skipping .json duplicate for id "${id}" (${absFile}) — .md already registered`,
+          `[flow-spec] syncFromFilesystem: skipping .json duplicate for id "${id}" (${absFile}) — .md already registered`
         );
         continue;
       }

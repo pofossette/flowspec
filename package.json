@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "packageManager": "pnpm@10.33.0",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "pnpm --filter @flowspec/web-app dev",
     "build": "pnpm -r build",
@@ -12,6 +15,25 @@
     "test": "pnpm --filter @flowspec/domain test && pnpm --filter @flowspec/registry test && pnpm --filter @flowspec/lock test && pnpm --filter flowspec test",
     "cli": "pnpm --filter flowspec exec node ./dist/run.js",
     "serve": "pnpm --filter flowspec exec node ./dist/run.js flow serve",
-    "preview:build": "pnpm --filter @flowspec/web-app build"
+    "preview:build": "pnpm --filter @flowspec/web-app build",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write --unsafe .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "fallow": "fallow",
+    "fallow:dead": "fallow dead-code --format json --quiet",
+    "fallow:health": "fallow health",
+    "fallow:dupes": "fallow dupes",
+    "fallow:audit": "fallow audit --base main",
+    "jscpd": "jscpd --config .jscpd.json packages apps",
+    "jscpd:report": "jscpd --config .jscpd.json --reporters console,html --output .jscpd-report packages apps",
+    "check": "pnpm typecheck && pnpm lint && pnpm fallow:dead && pnpm jscpd",
+    "quality": "pnpm typecheck && pnpm lint && pnpm fallow",
+    "prepare:hooks": "fallow hooks install --target git || true"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.11",
+    "fallow": "3.20.0",
+    "jscpd": "5.1.0"
   }
 }

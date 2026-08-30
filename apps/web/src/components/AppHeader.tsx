@@ -1,5 +1,5 @@
-import { Button, Chip, Select, ListBox } from '@heroui/react';
 import type { FlowSpec } from '@flowspec/domain';
+import { Button, Chip, ListBox, Select } from '@heroui/react';
 import type { ThemeMode } from '../store/theme-store.js';
 
 export function AppHeader(props: {

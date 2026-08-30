@@ -1,7 +1,7 @@
-import * as React from 'react';
 import type { FlowSpec } from '@flowspec/domain';
 import { flowSpecSchema } from '@flowspec/domain';
 import type { LockInfo } from '@flowspec/lock';
+import * as React from 'react';
 import { usePreviewStore } from '../store/preview-store.js';
 
 export function useFlowSync(opts: {
@@ -64,7 +64,7 @@ export function useFlowSync(opts: {
           .catch(() => {});
       }
     },
-    [holder, api, id, dir],
+    [holder, api, id, dir]
   );
 
   React.useEffect(() => {
@@ -110,12 +110,12 @@ export function useFlowSync(opts: {
       };
       ws.onerror = () => {
         try {
-          ws!.close();
+          ws?.close();
         } catch {}
         if (wsRef.current === ws) wsRef.current = null;
         try {
           const watchUrl = api(
-            `/api/flow-spec/${encodeURIComponent(id)}/watch?dir=${encodeURIComponent(dir)}`,
+            `/api/flow-spec/${encodeURIComponent(id)}/watch?dir=${encodeURIComponent(dir)}`
           );
           es = new EventSource(watchUrl);
           es.addEventListener('update', () => void fetchAllRef.current());
@@ -140,7 +140,7 @@ export function useFlowSync(opts: {
     } catch {
       try {
         const watchUrl = api(
-          `/api/flow-spec/${encodeURIComponent(id)}/watch?dir=${encodeURIComponent(dir)}`,
+          `/api/flow-spec/${encodeURIComponent(id)}/watch?dir=${encodeURIComponent(dir)}`
         );
         es = new EventSource(watchUrl);
         es.addEventListener('update', () => void fetchAllRef.current());

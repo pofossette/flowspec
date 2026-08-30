@@ -30,8 +30,8 @@ export function registerPreviewCommand(flow: Command): void {
           JSON.stringify(
             { ok: true, previewUrl, id: id || null, dir: absoluteDir, port: actualPort },
             null,
-            2,
-          ),
+            2
+          )
         );
         console.log(`FlowSpec preview at ${previewUrl}`);
         console.log(`API: http://${opts.host}:${actualPort}/api/flow-spec/:id  (+ /lock)`);
@@ -50,6 +50,6 @@ export function registerPreviewCommand(flow: Command): void {
         };
         process.on('SIGINT', shutdown);
         process.on('SIGTERM', shutdown);
-      },
+      }
     );
 }

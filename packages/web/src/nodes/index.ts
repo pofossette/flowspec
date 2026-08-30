@@ -1,6 +1,7 @@
-export { FlowNodeShape, KIND_DEFAULTS, KIND_DEFAULTS_DARK, STATUS_DOT } from './FlowNodeShape.js';
-export type { FlowNodeShapeData, FlowNodeShapeProps } from './FlowNodeShape.js';
 export { CommunityMindMapNode } from './CommunityMindMapNode.js';
+export type { FlowNodeShapeData, FlowNodeShapeProps } from './FlowNodeShape.js';
+export { FlowNodeShape, KIND_DEFAULTS, KIND_DEFAULTS_DARK, STATUS_DOT } from './FlowNodeShape.js';
+
 import { CommunityMindMapNode } from './CommunityMindMapNode.js';
 
 // 社区包替代手搓：统一用 CommunityMindMapNode（基于 xyflow/mindmap-app MIT），彻底避免 clipPath 溢出与边框错位

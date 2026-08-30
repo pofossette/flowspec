@@ -1,10 +1,10 @@
-import * as React from 'react';
-import { Button } from '@heroui/react';
 import type { FlowSpec } from '@flowspec/domain';
+import { Button } from '@heroui/react';
+import * as React from 'react';
 import type { PreviewSelection } from '../store/preview-store.js';
 import { DocNav } from './DocNav.js';
-import { NodeDetail } from './NodeDetail.js';
 import { EdgeDetail } from './EdgeDetail.js';
+import { NodeDetail } from './NodeDetail.js';
 
 export function FlowAside(props: {
   draft: FlowSpec;
@@ -12,7 +12,7 @@ export function FlowAside(props: {
   readOnly: boolean;
   onClearSelection: () => void;
   onUpdateNode: (
-    p: Partial<{ label: string; content: string; kind: string; status: string }>,
+    p: Partial<{ label: string; content: string; kind: string; status: string }>
   ) => void;
   onUpdateEdge: (p: Partial<{ label: string; content: string; kind: string }>) => void;
 }): React.JSX.Element {
@@ -23,7 +23,8 @@ export function FlowAside(props: {
     selection?.type === 'edge' ? (draft.edges.find((e) => e.id === selection.id) ?? null) : null;
 
   const [width, setWidth] = React.useState(() => {
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('flow-aside-width') : null;
+    const saved =
+      typeof window !== 'undefined' ? window.localStorage.getItem('flow-aside-width') : null;
     const n = saved ? Number(saved) : 380;
     return Number.isFinite(n) ? Math.min(720, Math.max(280, n)) : 380;
   });
@@ -62,7 +63,7 @@ export function FlowAside(props: {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [width],
+    [width]
   );
 
   return (

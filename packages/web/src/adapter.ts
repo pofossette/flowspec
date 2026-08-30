@@ -1,10 +1,4 @@
-import type {
-  FlowEdge,
-  FlowEdgeKind,
-  FlowNode,
-  FlowNodeKind,
-  FlowSpec,
-} from '@flowspec/domain';
+import type { FlowEdge, FlowEdgeKind, FlowNode, FlowNodeKind, FlowSpec } from '@flowspec/domain';
 
 // Minimal React Flow compatible types without hard dependency on @xyflow/react
 // Consumer may import actual types from @xyflow/react; this adapter stays dependency-soft.
@@ -85,7 +79,7 @@ function depthOf(
   nodeId: string,
   spec: FlowSpec,
   memo = new Map<string, number>(),
-  visiting = new Set<string>(),
+  visiting = new Set<string>()
 ): number {
   if (nodeId === spec.rootId) return 0;
   if (memo.has(nodeId)) return memo.get(nodeId)!;

@@ -1,6 +1,6 @@
-import * as React from 'react';
 import type { FlowSpec } from '@flowspec/domain';
 import type { LockInfo } from '@flowspec/lock';
+import * as React from 'react';
 import { usePreviewStore } from '../store/preview-store.js';
 
 export function useFlowActions(opts: {
@@ -22,7 +22,7 @@ export function useFlowActions(opts: {
   handleToggleEdit: () => Promise<void>;
   handleAddNode: (kind: string) => Promise<void>;
   handleUpdateNode: (
-    p: Partial<{ label: string; content: string; kind: string; status: string }>,
+    p: Partial<{ label: string; content: string; kind: string; status: string }>
   ) => Promise<void>;
   handleUpdateEdge: (p: Partial<{ label: string; content: string; kind: string }>) => Promise<void>;
 } {
@@ -43,7 +43,7 @@ export function useFlowActions(opts: {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ holder, note: 'web editing' }),
-        },
+        }
       );
       if (!res.ok) throw new Error(await res.text());
       await fetchAll();
@@ -66,7 +66,7 @@ export function useFlowActions(opts: {
       setDraft(next);
       wsSend(next);
     },
-    [locked, readOnly, ensureLock, setDraft, setMessage, wsSend],
+    [locked, readOnly, ensureLock, setDraft, setMessage, wsSend]
   );
 
   const handleSave = React.useCallback(async () => {
@@ -87,7 +87,7 @@ export function useFlowActions(opts: {
           method: 'PUT',
           headers: { 'content-type': 'application/json', 'x-flow-lock-holder': holder },
           body: JSON.stringify({ holder, spec: draft }),
-        },
+        }
       );
       if (!res.ok) throw new Error(await res.text());
       setMessage('已保存并自动解锁');
@@ -103,11 +103,11 @@ export function useFlowActions(opts: {
     try {
       const res = await fetch(
         api(
-          `/api/flow-spec/${encodeURIComponent(id)}/lock?dir=${encodeURIComponent(dir)}&holder=${encodeURIComponent(holder)}`,
+          `/api/flow-spec/${encodeURIComponent(id)}/lock?dir=${encodeURIComponent(dir)}&holder=${encodeURIComponent(holder)}`
         ),
         {
           method: 'DELETE',
-        },
+        }
       );
       if (!res.ok) throw new Error(await res.text());
       setMessage('已解锁');
@@ -166,7 +166,7 @@ export function useFlowActions(opts: {
       setSelection({ type: 'node', id: newId });
       setMessage(`已添加 ${kind} 节点 ${newId}`);
     },
-    [draft, readOnly, editMode, handleChange, setSelection, setMessage],
+    [draft, readOnly, editMode, handleChange, setSelection, setMessage]
   );
 
   React.useEffect(() => {
@@ -194,13 +194,13 @@ export function useFlowActions(opts: {
                   ? { status: (patch.status as FlowSpec['nodes'][number]['status']) || undefined }
                   : {}),
               }
-            : n,
+            : n
         ),
         updatedAt: new Date().toISOString(),
       };
       await handleChange(next);
     },
-    [draft, selection, readOnly, handleChange],
+    [draft, selection, readOnly, handleChange]
   );
 
   const handleUpdateEdge = React.useCallback(
@@ -216,13 +216,13 @@ export function useFlowActions(opts: {
                 ...(patch.content !== undefined ? { content: patch.content || undefined } : {}),
                 ...(patch.kind ? { kind: patch.kind as FlowSpec['edges'][number]['kind'] } : {}),
               }
-            : e,
+            : e
         ),
         updatedAt: new Date().toISOString(),
       };
       await handleChange(next);
     },
-    [draft, selection, readOnly, handleChange],
+    [draft, selection, readOnly, handleChange]
   );
 
   return {

@@ -5,10 +5,19 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./preview": { "types": "./dist/preview/index.d.ts", "import": "./dist/preview/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./preview": {
+      "types": "./dist/preview/index.d.ts",
+      "import": "./dist/preview/index.js"
+    }
   },
-  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
   "dependencies": {
     "@flowspec/domain": "workspace:*",
     "@flowspec/lock": "workspace:*",
@@ -20,5 +29,7 @@
     "zod": "^4.1.12",
     "yaml": "^2.8.3"
   },
-  "devDependencies": { "typescript": "^5.9.3" }
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }

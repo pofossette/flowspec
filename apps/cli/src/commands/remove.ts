@@ -1,10 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Command } from 'commander';
-import { readLockFromMarkdown, writeLockToMarkdown } from '@flowspec/lock';
 import { stripBlocks } from '@flowspec/domain';
-import { ensureRegistryDir } from '@flowspec/registry';
-import { loadMark, loadPreview, removeEntry } from '@flowspec/registry';
+import { readLockFromMarkdown, writeLockToMarkdown } from '@flowspec/lock';
+import { ensureRegistryDir, loadMark, loadPreview, removeEntry } from '@flowspec/registry';
+import type { Command } from 'commander';
 
 export interface RemoveFlowOptions {
   deleteBlocks?: boolean | undefined;
@@ -13,11 +12,11 @@ export interface RemoveFlowOptions {
 
 export function handleRemoveFlowSpec(
   id: string,
-  opts: RemoveFlowOptions = {},
+  opts: RemoveFlowOptions = {}
 ): { removedMark: boolean; removedPreview: boolean } {
   const root = opts.root ? path.resolve(opts.root) : process.cwd();
   ensureRegistryDir(root);
-  if (!id || !id.trim()) throw new Error('Missing <id> for remove');
+  if (!id?.trim()) throw new Error('Missing <id> for remove');
   const cleanId = id.trim();
   const markBefore = loadMark(root);
   const previewBefore = loadPreview(root);
@@ -30,7 +29,7 @@ export function handleRemoveFlowSpec(
     const raw = fs.readFileSync(filePathForBlocks, 'utf-8');
     const origLock = readLockFromMarkdown(raw);
     const stripped = stripBlocks(raw);
-    let lockPatch: {
+    const lockPatch: {
       locked: boolean;
       holder?: string;
       note?: string;
@@ -64,7 +63,7 @@ export function registerRemoveCommand(flow: Command): void {
     .option(
       '--delete-blocks',
       'Also strip ^^^block blocks from markdown and set frontmatter locked:false',
-      false,
+      false
     )
     .action((id: string, opts: { deleteBlocks?: boolean }) => {
       try {
@@ -73,8 +72,8 @@ export function registerRemoveCommand(flow: Command): void {
           JSON.stringify(
             { ok: true, id, removedMark: res.removedMark, removedPreview: res.removedPreview },
             null,
-            2,
-          ),
+            2
+          )
         );
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);

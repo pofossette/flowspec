@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "entry": [
+    "packages/*/src/index.ts",
+    "apps/cli/src/run.ts",
+    "apps/cli/src/daemon.ts",
+    "apps/web/src/main.tsx"
+  ],
+  "workspaces": {
+    "patterns": ["packages/*", "apps/*"]
+  },
+  "ignorePatterns": ["**/dist/**", "**/.superpowers/**", "flowspec/**", ".flowspec/**"],
+  "duplicates": {
+    "minOccurrences": 2,
+    "ignore": ["**/*.test.ts", "**/*.test.tsx"]
+  },
+  "rules": {
+    "unused-dependencies": "warn",
+    "unused-files": "warn",
+    "circular-dependencies": "error"
+  },
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 30,
+    "maxCrap": 30
+  }
+}

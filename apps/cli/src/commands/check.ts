@@ -1,11 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Command } from 'commander';
-import { flowSpecSchema } from '@flowspec/domain';
-import { parseFlowSpecFromMarkdown } from '@flowspec/domain';
+import { flowSpecSchema, parseFlowSpecFromMarkdown } from '@flowspec/domain';
 import { resolveSpecPath } from '@flowspec/lock';
-import { ensureRegistryDir } from '@flowspec/registry';
-import { loadMark, loadPreview } from '@flowspec/registry';
+import { ensureRegistryDir, loadMark, loadPreview } from '@flowspec/registry';
+import type { Command } from 'commander';
 import { toRepoRelative } from './shared.js';
 
 export interface CheckFlowOptions {
@@ -31,7 +29,7 @@ function validateSpecContent(raw: string, fileLabel: string): string[] {
 
 export function handleCheckFlowSpec(
   target: string | undefined,
-  opts: CheckFlowOptions = {},
+  opts: CheckFlowOptions = {}
 ): CheckResult[] {
   const root = opts.root ? path.resolve(opts.root) : process.cwd();
   ensureRegistryDir(root);
@@ -97,7 +95,7 @@ export function registerCheckCommand(flow: Command): void {
   flow
     .command('check')
     .description(
-      'Validate FlowSpec structure (zod + rootId + edges refs); use --all to check all registered',
+      'Validate FlowSpec structure (zod + rootId + edges refs); use --all to check all registered'
     )
     .argument('[target]', 'id or path to check (omit with --all)')
     .option('--all', 'Check all entries in mark.json', false)

@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { flowSpecExample, serializeFlowSpecToMarkdown } from '@flowspec/domain';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ensureRegistryDir, markPath, previewPath, resolveRegistryDir } from './paths.js';
-import { registrySchema } from './types.js';
 import {
   addEntry,
   addEntryAsync,
@@ -16,13 +16,12 @@ import {
   moveEntryBetween,
   removeEntry,
   saveMark,
-  savePreview,
   saveMarkAsync,
+  savePreview,
   syncFromFilesystem,
   updateEntry,
 } from './store.js';
-import { serializeFlowSpecToMarkdown } from '@flowspec/domain';
-import { flowSpecExample } from '@flowspec/domain';
+import { registrySchema } from './types.js';
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'flowspec-registry-test-'));
@@ -104,13 +103,13 @@ describe('registry store', () => {
       'mark',
       'demo',
       mkEntry({ path: 'flowspec/demo.md', title: 'Demo MD', rootId: 'root-1' }),
-      root,
+      root
     );
     addEntry(
       'mark',
       'complex-demo',
       mkEntry({ path: 'flowspec/complex-demo.md', title: 'Complex', rootId: 'root' }),
-      root,
+      root
     );
     expect(isRegistered('demo', 'mark', root)).toBe(true);
     expect(isRegistered('complex-demo', 'any', root)).toBe(true);
@@ -120,7 +119,7 @@ describe('registry store', () => {
     // update
     const upd = updateEntry('mark', 'demo', { title: 'Demo Updated' }, root);
     expect(upd).not.toBeNull();
-    expect(loadMark(root).entries['demo']?.title).toBe('Demo Updated');
+    expect(loadMark(root).entries.demo?.title).toBe('Demo Updated');
     // update non-existent returns null
     expect(updateEntry('mark', 'nope', { title: 'x' }, root)).toBeNull();
 
@@ -143,8 +142,8 @@ describe('registry store', () => {
   it('preview registry isolated from mark', () => {
     addEntry('mark', 'demo', mkEntry({ title: 'Mark Demo' }), root);
     addEntry('preview', 'demo', mkEntry({ title: 'Preview Demo' }), root);
-    expect(loadMark(root).entries['demo']?.title).toBe('Mark Demo');
-    expect(loadPreview(root).entries['demo']?.title).toBe('Preview Demo');
+    expect(loadMark(root).entries.demo?.title).toBe('Mark Demo');
+    expect(loadPreview(root).entries.demo?.title).toBe('Preview Demo');
     expect(listPreview(root).length).toBe(1);
     // isRegistered any checks both
     expect(isRegistered('demo', 'any', root)).toBe(true);
@@ -199,8 +198,8 @@ describe('registry store', () => {
     ]);
     const m = loadMark(root);
     // Both should be present because queue serializes read-modify-write
-    expect(m.entries['a']).toBeDefined();
-    expect(m.entries['b']).toBeDefined();
+    expect(m.entries.a).toBeDefined();
+    expect(m.entries.b).toBeDefined();
   });
 
   it('syncFromFilesystem scans flowspec and validates blocks', () => {
@@ -220,7 +219,7 @@ describe('registry store', () => {
     fs.writeFileSync(
       path.join(flowspecDir, 'via-json.json'),
       JSON.stringify(validSpec, null, 2),
-      'utf-8',
+      'utf-8'
     );
 
     // invalid md (no blocks, not flowspec)
@@ -234,26 +233,26 @@ describe('registry store', () => {
     fs.writeFileSync(
       path.join(nestedDir, 'nested.md'),
       mdContent.replace('Demo MD', 'Nested'),
-      'utf-8',
+      'utf-8'
     );
 
     const reg = syncFromFilesystem(root, { flowspecDir });
     // should have demo, legacy, via-json, team/nested = 4 entries, not invalid/bad
     expect(Object.keys(reg.entries).length).toBe(4);
-    expect(reg.entries['demo']).toBeDefined();
-    expect(reg.entries['legacy']).toBeDefined();
+    expect(reg.entries.demo).toBeDefined();
+    expect(reg.entries.legacy).toBeDefined();
     expect(reg.entries['via-json']).toBeDefined();
     expect(reg.entries['team/nested']).toBeDefined();
-    expect(reg.entries['invalid']).toBeUndefined();
-    expect(reg.entries['bad']).toBeUndefined();
+    expect(reg.entries.invalid).toBeUndefined();
+    expect(reg.entries.bad).toBeUndefined();
     // paths are repo-relative
-    expect(reg.entries['demo']?.path).toBe('flowspec/demo.md');
+    expect(reg.entries.demo?.path).toBe('flowspec/demo.md');
     expect(reg.entries['team/nested']?.path).toBe('flowspec/team/nested.md');
 
     // prune: remove a file then resync should prune
     fs.unlinkSync(path.join(flowspecDir, 'legacy.md'));
     const reg2 = syncFromFilesystem(root, { flowspecDir });
-    expect(reg2.entries['legacy']).toBeUndefined();
+    expect(reg2.entries.legacy).toBeUndefined();
     expect(Object.keys(reg2.entries).length).toBe(3);
 
     // without prune should keep stale
@@ -274,7 +273,7 @@ describe('registry store', () => {
       'preview',
       'tmp-preview',
       mkEntry({ title: 'Tmp', rootId: 'r1', path: 'flowspec/tmp.md' }),
-      root,
+      root
     );
     expect(listPreview(root).some((e) => e.id === 'tmp-preview')).toBe(true);
     expect(isRegistered('tmp-preview', 'preview', root)).toBe(true);

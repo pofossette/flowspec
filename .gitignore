@@ -6,3 +6,6 @@ dist
 .DS_Store
 apps/web/dist
 packages/*/dist
+.fallow/
+.jscpd-report/
+biome-report/

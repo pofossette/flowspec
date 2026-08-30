@@ -1,10 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { flowSpecSchema, parseFlowSpecFromMarkdown } from '@flowspec/domain';
+import { addEntry, ensureRegistryDir, loadMark, loadPreview } from '@flowspec/registry';
 import type { Command } from 'commander';
-import { flowSpecSchema } from '@flowspec/domain';
-import { parseFlowSpecFromMarkdown } from '@flowspec/domain';
-import { ensureRegistryDir } from '@flowspec/registry';
-import { addEntry, loadMark, loadPreview } from '@flowspec/registry';
 import { deriveIdFromPath, toRepoRelative } from './shared.js';
 
 export interface AddFlowOptions {
@@ -15,7 +13,7 @@ export interface AddFlowOptions {
 
 export function handleAddFlowSpec(
   filePath: string,
-  opts: AddFlowOptions = {},
+  opts: AddFlowOptions = {}
 ): { id: string; relPath: string } {
   const root = opts.root ? path.resolve(opts.root) : process.cwd();
   ensureRegistryDir(root);
@@ -57,7 +55,7 @@ export function registerAddCommand(flow: Command): void {
   flow
     .command('add')
     .description(
-      'Register a FlowSpec markdown file into .flowspec registry (auto-creates .flowspec)',
+      'Register a FlowSpec markdown file into .flowspec registry (auto-creates .flowspec)'
     )
     .argument('<path>', 'Path to markdown file (any location, must contain ^^^block syntax)')
     .option('--id <id>', 'Override registry id (default: basename without extension)')
@@ -69,8 +67,8 @@ export function registerAddCommand(flow: Command): void {
           JSON.stringify(
             { ok: true, id: result.id, path: result.relPath, preview: Boolean(opts.preview) },
             null,
-            2,
-          ),
+            2
+          )
         );
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);

@@ -1,11 +1,11 @@
-import * as React from 'react';
-import { flowSpecToRF, rfToFlowSpec, type RFEdge, type RFNode } from './adapter.js';
-import type { FlowMapProps } from './types.js';
 import type { FlowSpec } from '@flowspec/domain';
-import { flowNodeTypes } from './nodes/index.js';
+import * as React from 'react';
+import { flowSpecToRF, type RFEdge, type RFNode, rfToFlowSpec } from './adapter.js';
 import { flowEdgeTypes } from './edges/index.js';
-import { KIND_DEFAULTS } from './nodes/FlowNodeShape.js';
 import { FlowGlobalStyles } from './FlowGlobalStyles.js';
+import { KIND_DEFAULTS } from './nodes/FlowNodeShape.js';
+import { flowNodeTypes } from './nodes/index.js';
+import type { FlowMapProps } from './types.js';
 
 /**
  * Minimal React Flow wrapper with soft dependency.
@@ -15,7 +15,7 @@ import { FlowGlobalStyles } from './FlowGlobalStyles.js';
 type RFModule = typeof import('@xyflow/react');
 
 function FallbackCanvas(
-  props: FlowMapProps & { rf: ReturnType<typeof flowSpecToRF> },
+  props: FlowMapProps & { rf: ReturnType<typeof flowSpecToRF> }
 ): React.JSX.Element {
   const { spec, mode = 'edit', className, allowManualAdd = true, rf, readOnly, lockHolder } = props;
   return (
@@ -155,11 +155,11 @@ function FlowMapCanvasInner(props: {
         (eds) =>
           addEdge(
             { ...params, id: `e-${Date.now()}`, type: 'hierarchical' } as unknown as never,
-            eds as unknown as never,
-          ) as unknown as never,
+            eds as unknown as never
+          ) as unknown as never
       );
     },
-    [addEdge, setEdges],
+    [addEdge, setEdges]
   );
 
   // Drag handle -> pane to create node (React Flow tutorial pattern)
@@ -195,7 +195,7 @@ function FlowMapCanvasInner(props: {
       };
       onChange(nextSpec);
     },
-    [allowManualAdd, onChange, spec],
+    [allowManualAdd, onChange, spec]
   );
 
   // sync back to FlowSpec on any rf change

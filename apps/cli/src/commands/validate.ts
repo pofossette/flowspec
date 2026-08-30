@@ -1,5 +1,5 @@
-import type { Command } from 'commander';
 import { safeParseFlowSpec } from '@flowspec/domain';
+import type { Command } from 'commander';
 import { readSpec } from './shared.js';
 
 export function registerValidateCommand(flow: Command): void {
@@ -24,8 +24,8 @@ export function registerValidateCommand(flow: Command): void {
             edges: res.data.edges.length,
           },
           null,
-          2,
-        ),
+          2
+        )
       );
     });
 }

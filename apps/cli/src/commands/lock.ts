@@ -1,5 +1,5 @@
-import type { Command } from 'commander';
 import { acquireLock, resolveLockPath, resolveSpecPath } from '@flowspec/lock';
+import type { Command } from 'commander';
 import { defaultHolder } from './shared.js';
 
 export function registerLockCommand(flow: Command): void {
@@ -32,8 +32,8 @@ export function registerLockCommand(flow: Command): void {
               lockPath,
             },
             null,
-            2,
-          ),
+            2
+          )
         );
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);

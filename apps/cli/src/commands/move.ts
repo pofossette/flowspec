@@ -1,10 +1,14 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { flowSpecSchema, parseFlowSpecFromMarkdown } from '@flowspec/domain';
+import {
+  addEntry,
+  ensureRegistryDir,
+  loadMark,
+  loadPreview,
+  removeEntry,
+} from '@flowspec/registry';
 import type { Command } from 'commander';
-import { flowSpecSchema } from '@flowspec/domain';
-import { parseFlowSpecFromMarkdown } from '@flowspec/domain';
-import { ensureRegistryDir } from '@flowspec/registry';
-import { addEntry, loadMark, loadPreview, removeEntry } from '@flowspec/registry';
 import { deriveIdFromPath, toRepoRelative } from './shared.js';
 
 export interface MoveFlowOptions {
@@ -14,7 +18,7 @@ export interface MoveFlowOptions {
 export function handleMoveFlowSpec(
   src: string,
   dest: string,
-  opts: MoveFlowOptions = {},
+  opts: MoveFlowOptions = {}
 ): { srcId: string; destId: string; srcPath: string; destPath: string } {
   const root = opts.root ? path.resolve(opts.root) : process.cwd();
   ensureRegistryDir(root);
@@ -96,7 +100,7 @@ export function handleMoveFlowSpec(
             addedAt: old.addedAt,
             updatedAt: now,
           },
-          root,
+          root
         );
       }
     }
@@ -114,7 +118,7 @@ export function handleMoveFlowSpec(
             addedAt: old.addedAt,
             updatedAt: now,
           },
-          root,
+          root
         );
       }
     }
@@ -146,8 +150,8 @@ export function registerMoveCommand(flow: Command): void {
               destPath: res.destPath,
             },
             null,
-            2,
-          ),
+            2
+          )
         );
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);

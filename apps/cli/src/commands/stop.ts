@@ -1,14 +1,14 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Command } from 'commander';
 import { findRepoRoot } from '@flowspec/registry';
+import type { Command } from 'commander';
 import { isAlive, pidFilePath } from './shared.js';
 
 export function registerStopCommand(flow: Command): void {
   flow
     .command('stop')
     .description(
-      'Stop flowspec background server (pid file in .flowspec/serve.pid, deleted on success)',
+      'Stop flowspec background server (pid file in .flowspec/serve.pid, deleted on success)'
     )
     .option('--dir <dir>', 'Flowspec root dir', 'flowspec')
     .action((opts: { dir: string }) => {
@@ -25,7 +25,7 @@ export function registerStopCommand(flow: Command): void {
       }
       if (!fs.existsSync(effectivePidPath)) {
         console.error(
-          JSON.stringify({ ok: false, error: `not running (no pid file at ${pidPath})` }, null, 2),
+          JSON.stringify({ ok: false, error: `not running (no pid file at ${pidPath})` }, null, 2)
         );
         process.exitCode = 1;
         return;
@@ -46,8 +46,8 @@ export function registerStopCommand(flow: Command): void {
           JSON.stringify(
             { ok: true, stopped: false, reason: 'stale pid, cleaned', pidPath: pidPathEffective },
             null,
-            2,
-          ),
+            2
+          )
         );
         return;
       }
@@ -71,7 +71,7 @@ export function registerStopCommand(flow: Command): void {
           } catch {}
         }
         console.log(
-          JSON.stringify({ ok: true, stopped: true, pid, pidPath: pidPathEffective }, null, 2),
+          JSON.stringify({ ok: true, stopped: true, pid, pidPath: pidPathEffective }, null, 2)
         );
         console.log(`flowspec stopped pid ${pid}`);
       } catch (e: unknown) {

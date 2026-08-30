@@ -1,0 +1,22 @@
+{
+  "threshold": 8,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.superpowers/**",
+    "**/pnpm-lock.yaml",
+    "**/*.min.js",
+    "**/coverage/**",
+    "**/.flowspec/**",
+    "**/flowspec/**"
+  ],
+  "format": ["typescript", "javascript", "tsx"],
+  "mode": "mild",
+  "minTokens": 50,
+  "minLines": 5,
+  "maxLines": 500,
+  "absolute": false,
+  "blame": false,
+  "skipLocal": false
+}

@@ -1,5 +1,5 @@
-import type { Command } from 'commander';
 import { getLockStatus, resolveLockPath, resolveSpecPath } from '@flowspec/lock';
+import type { Command } from 'commander';
 
 export function registerStatusCommand(flow: Command): void {
   flow

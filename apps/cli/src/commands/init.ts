@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Command } from 'commander';
 import { flowSpecExample } from '@flowspec/domain';
-import { readSpec, writeSpec } from './shared.js';
+import type { Command } from 'commander';
+import { writeSpec } from './shared.js';
 
 export function registerInitCommand(flow: Command): void {
   flow
@@ -24,8 +24,8 @@ export function registerInitCommand(flow: Command): void {
           JSON.stringify(
             { ok: true, out: outAbs, nodes: spec.nodes.length, firstCreate: isFirstCreate },
             null,
-            2,
-          ),
+            2
+          )
         );
         if (isFirstCreate && opts.open) {
           const base = path.basename(outAbs, path.extname(outAbs));
@@ -70,7 +70,7 @@ export function registerInitCommand(flow: Command): void {
             await new Promise(() => {});
           } catch (e: unknown) {
             console.log(
-              `Preview server not started (${e instanceof Error ? e.message : String(e)}), try: flow preview ${id} --port ${port}`,
+              `Preview server not started (${e instanceof Error ? e.message : String(e)}), try: flow preview ${id} --port ${port}`
             );
             try {
               const { exec } = await import('node:child_process');
@@ -84,6 +84,6 @@ export function registerInitCommand(flow: Command): void {
             } catch {}
           }
         }
-      },
+      }
     );
 }
