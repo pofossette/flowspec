@@ -1,10 +1,16 @@
-import { FlowMapCanvas } from '@flowspec/web';
 import { Card, Dropdown, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { AppHeader } from './components/AppHeader.js';
 import { FlowAside } from './components/FlowAside.js';
 import { LeftNav } from './components/LeftNav.js';
-import { WorkspaceModal } from './components/WorkspaceModal.js';
+
+// 重型组件按需懒加载，减少首屏 JS
+const FlowMapCanvas = React.lazy(() =>
+  import('@flowspec/web').then((m) => ({ default: m.FlowMapCanvas }))
+);
+const WorkspaceModal = React.lazy(() =>
+  import('./components/WorkspaceModal.js').then((m) => ({ default: m.WorkspaceModal }))
+);
 import { useFlowActions } from './hooks/useFlowActions.js';
 import { useFlowList } from './hooks/useFlowList.js';
 import { useFlowSync } from './hooks/useFlowSync.js';
@@ -183,15 +189,17 @@ export default function App(): React.JSX.Element {
             onSwitchFlow={handleSwitchFlow}
             onManage={() => setWorkspaceModalOpen(true)}
           />
-          <WorkspaceModal
-            open={workspaceModalOpen}
-            onClose={() => setWorkspaceModalOpen(false)}
-            dir={dir}
-            api={api}
-            workspaceList={flowList as Array<{ id: string; title: string; path: string; rootId: string }>}
-            fullList={fullList}
-            onRefresh={handleWorkspaceRefresh}
-          />
+          <React.Suspense fallback={null}>
+            <WorkspaceModal
+              open={workspaceModalOpen}
+              onClose={() => setWorkspaceModalOpen(false)}
+              dir={dir}
+              api={api}
+              workspaceList={flowList as Array<{ id: string; title: string; path: string; rootId: string }>}
+              fullList={fullList}
+              onRefresh={handleWorkspaceRefresh}
+            />
+          </React.Suspense>
           <div className="flex flex-1 min-w-0 flex-col bg-panel-bg p-4 min-h-0">
             <div className="flex-1 min-h-0 relative">
               {!readOnly && editMode ? (
@@ -244,15 +252,24 @@ export default function App(): React.JSX.Element {
                 </div>
               ) : null}
               <ErrorBoundary>
-                <FlowMapCanvas
-                  spec={draft}
-                  onChange={handleChange}
-                  readOnly={readOnly}
-                  lockHolder={lockInfo?.holder}
-                  selected={selection}
-                  onSelection={setSelection}
-                  colorMode={effectiveTheme}
-                />
+                <React.Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center gap-2 text-sm text-default-500">
+                      <Spinner size="sm" />
+                      加载画布…
+                    </div>
+                  }
+                >
+                  <FlowMapCanvas
+                    spec={draft}
+                    onChange={handleChange}
+                    readOnly={readOnly}
+                    lockHolder={lockInfo?.holder}
+                    selected={selection}
+                    onSelection={setSelection}
+                    colorMode={effectiveTheme}
+                  />
+                </React.Suspense>
               </ErrorBoundary>
             </div>
           </div>

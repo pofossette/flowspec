@@ -13,9 +13,13 @@ type Props = {
 };
 
 export function BlockMarkdownEditor(props: Props): React.JSX.Element {
-  const { value, onChange, readOnly = false, placeholder: _placeholder, theme } = props;
+  const { value, onChange, readOnly = false, placeholder, theme } = props;
   // we keep editor instance stable per mount; value sync via replaceBlocks
-  const editor = useCreateBlockNote({}); // lib type gap: default schema initialContent optional
+  // 完备 markdown：支持全部默认块（标题、列表、引用、代码、表格、图片/音视频/文件、分割线、折叠等），
+  // 内联：粗体/斜体/下划线/删除线/行内代码/链接/颜色/对齐， plus 斜杠菜单、格式化工具栏、侧边菜单、表格句柄、文件面板
+  const editor = useCreateBlockNote({
+    uploadFile: async (file: File) => URL.createObjectURL(file),
+  }); // lib type gap: default schema initialContent optional
 
   const lastExternalRef = React.useRef<string>(value);
   const lastEmittedRef = React.useRef<string>(value);
@@ -55,8 +59,9 @@ export function BlockMarkdownEditor(props: Props): React.JSX.Element {
     onChange?.(normalized);
   }, [editor, onChange, readOnly]);
 
+  // placeholder hint: BlockNote shows placeholder via empty block, we expose via data attribute for CSS
   return (
-    <div className="block-markdown-editor">
+    <div className="block-markdown-editor" data-placeholder={placeholder ?? ''}>
       <BlockNoteView
         editor={editor as unknown as Parameters<typeof BlockNoteView>[0]['editor']} // lib type gap: blocknote generic schema mismatch
         editable={!readOnly}

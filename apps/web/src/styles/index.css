@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 @import 'tailwindcss';
 @import '@heroui/styles';
 
@@ -72,4 +70,20 @@ body {
 /* toolbar / side menu already float; keep wrapper subtle in 380px */
 .block-markdown-editor [data-position='top'] {
   z-index: 5;
+}
+
+/* Fullscreen editor: centered narrow column, better readability */
+.block-markdown-editor.fullscreen .bn-editor {
+  padding: 16px 20px;
+  min-height: 60vh;
+  font-size: 15px;
+  line-height: 1.75;
+}
+.block-markdown-editor.fullscreen .bn-block-outer {
+  padding-block: 3px;
+}
+/* code block styling tweak */
+.block-markdown-editor .bn-block-content[data-content-type='codeBlock'] pre {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px;
 }

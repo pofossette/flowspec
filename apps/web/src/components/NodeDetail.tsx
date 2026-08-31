@@ -1,8 +1,15 @@
 import type { FlowSpec } from '@flowspec/domain';
-import { Card, Chip, Description, Input, Label, Separator, TextField } from '@heroui/react';
+import { Card, Chip, Description, Input, Label, Separator, Spinner, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useEffectiveTheme, useThemeStore } from '../store/theme-store.js';
-import { BlockMarkdownEditor } from './BlockMarkdownEditor.js';
+import { FullscreenExpandButton } from './FullscreenExpandButton.js';
+
+const BlockMarkdownEditor = React.lazy(() =>
+  import('./BlockMarkdownEditor.js').then((m) => ({ default: m.BlockMarkdownEditor }))
+);
+const FullscreenMarkdownEditor = React.lazy(() =>
+  import('./FullscreenMarkdownEditor.js').then((m) => ({ default: m.FullscreenMarkdownEditor }))
+);
 
 const NODE_KIND_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   root: {
@@ -52,6 +59,7 @@ export function NodeDetail(props: {
     const n = saved ? Number(saved) : 300;
     return Number.isFinite(n) ? Math.min(720, Math.max(180, n)) : 300;
   });
+  const [fullscreenOpen, setFullscreenOpen] = React.useState(false);
   const onHeightMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
       const startY = e.clientY;
@@ -159,20 +167,31 @@ export function NodeDetail(props: {
       </Card>
 
       <div className="grid gap-1.5">
-        <Label className="text-xs font-medium">文档正文（块级编辑 · / 唤起菜单）</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs font-medium">文档正文（块级编辑 · / 唤起菜单）</Label>
+          <FullscreenExpandButton onClick={() => setFullscreenOpen(true)} />
+        </div>
         <div
           className="relative flex flex-col rounded-lg border border-panel-line/60 bg-panel-surface dark:bg-zinc-900/30 overflow-hidden focus-within:border-default-300 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors"
           style={{ height: editorHeight }}
         >
           <div className="min-h-0 flex-1 overflow-auto">
-            <BlockMarkdownEditor
-              key={`node-${node.id}`}
-              value={content}
-              onChange={readOnly ? undefined : (v) => setContent(v)}
-              readOnly={readOnly}
-              theme={effectiveTheme}
-              placeholder="输入 / 唤起块菜单 · 直接书写，自动保存"
-            />
+            <React.Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center p-4 text-xs text-default-500 gap-2">
+                  <Spinner size="sm" /> 加载编辑器…
+                </div>
+              }
+            >
+              <BlockMarkdownEditor
+                key={`node-${node.id}`}
+                value={content}
+                onChange={readOnly ? undefined : (v) => setContent(v)}
+                readOnly={readOnly}
+                theme={effectiveTheme}
+                placeholder="输入 / 唤起块菜单 · 直接书写，自动保存"
+              />
+            </React.Suspense>
           </div>
           <div
             role="separator"
@@ -190,6 +209,19 @@ export function NodeDetail(props: {
         <div className="text-xs text-muted">已自动同步（WS 热更新），无需手动保存</div>
       ) : null}
       {readOnly ? <div className="text-xs text-muted">已锁定，仅预览 · 上方为原文渲染</div> : null}
+      <React.Suspense fallback={null}>
+        <FullscreenMarkdownEditor
+          open={fullscreenOpen}
+          onClose={() => setFullscreenOpen(false)}
+          value={content}
+          onChange={readOnly ? undefined : (v) => setContent(v)}
+          readOnly={readOnly}
+          title={node.label || node.id}
+          subtitle={`${node.kind} · ${node.id} ${node.id === draft.rootId ? '· root' : ''}`}
+          theme={effectiveTheme}
+          placeholder="输入 / 唤起块菜单 · 支持标题、列表、引用、代码、表格、图片…"
+        />
+      </React.Suspense>
     </div>
   );
 }
