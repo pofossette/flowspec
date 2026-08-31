@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { flowSpecSchema } from '@flowspec/domain';
 import { parseFlowSpecFromMarkdown } from '@flowspec/parser';
-import { addEntry, ensureRegistryDir, loadMark, loadPreview } from '@flowspec/registry';
+import { addEntry, ensureRegistryDir, findRepoRoot, loadFull, loadPreview, loadWorkspace } from '@flowspec/registry';
 import type { Command } from 'commander';
 import { deriveIdFromPath, toRepoRelative } from './shared.js';
 
@@ -16,7 +16,7 @@ export function handleAddFlowSpec(
   filePath: string,
   opts: AddFlowOptions = {}
 ): { id: string; relPath: string } {
-  const root = opts.root ? path.resolve(opts.root) : process.cwd();
+  const root = opts.root ? path.resolve(opts.root) : findRepoRoot(process.cwd());
   ensureRegistryDir(root);
   const abs = path.isAbsolute(filePath) ? path.resolve(filePath) : path.resolve(root, filePath);
   if (!fs.existsSync(abs)) throw new Error(`File not found: ${filePath}`);
@@ -32,7 +32,7 @@ export function handleAddFlowSpec(
   }
   const id = deriveIdFromPath(filePath, opts.id);
   if (!id) throw new Error('Derived id is empty');
-  if (id in loadMark(root).entries || id in loadPreview(root).entries) {
+  if (id in loadWorkspace(root).entries || id in loadPreview(root).entries) {
     throw new Error(`id already registered: ${id}`);
   }
   const relPath = toRepoRelative(abs, root);
@@ -47,8 +47,12 @@ export function handleAddFlowSpec(
     addedAt: now,
     updatedAt: now,
   };
-  addEntry('mark', id, entry, root);
+  addEntry('workspace', id, entry, root);
   if (opts.preview) addEntry('preview', id, entry, root);
+  // 同步写入 full.json（全量），保证工作区与全量一致；addEntry 为 upsert，会更新已存在的 full 条目
+  try {
+    addEntry('full', id, entry, root);
+  } catch {}
   return { id, relPath };
 }
 
@@ -56,7 +60,7 @@ export function registerAddCommand(flow: Command): void {
   flow
     .command('add')
     .description(
-      'Register a FlowSpec markdown file into .flowspec registry (auto-creates .flowspec)'
+      'Register a FlowSpec markdown file into workspace.json + full.json (.flowspec registry, auto-creates .flowspec)'
     )
     .argument('<path>', 'Path to markdown file (any location, must contain ^^^block syntax)')
     .option('--id <id>', 'Override registry id (default: basename without extension)')

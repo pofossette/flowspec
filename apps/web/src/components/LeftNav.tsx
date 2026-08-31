@@ -9,27 +9,41 @@ export function LeftNav(props: {
   menuCollapsed: boolean;
   onToggle: () => void;
   onSwitchFlow: (id: string) => void;
+  onManage?: () => void;
 }): React.JSX.Element {
-  const { flowList, activeId, dir, menuCollapsed, onToggle, onSwitchFlow } = props;
+  const { flowList, activeId, dir, menuCollapsed, onToggle, onSwitchFlow, onManage } = props;
   return (
     <nav
       className={`flex shrink-0 flex-col border-r border-panel-line bg-panel-surface transition-all ${menuCollapsed ? 'w-[56px]' : 'w-[220px]'}`}
     >
-      <div className="flex items-center justify-between px-2 py-2 border-b border-default-200">
+      <div className="flex items-center justify-between px-2 py-2 border-b border-default-200 gap-1">
         {!menuCollapsed ? (
           <span className="text-xs font-semibold px-1">工作区</span>
         ) : (
           <span className="text-xs px-1">⟁</span>
         )}
-        <Button
-          size="sm"
-          variant="tertiary"
-          className="h-6 w-6 min-w-0 p-0"
-          onPress={onToggle}
-          aria-label={menuCollapsed ? '展开' : '收起'}
-        >
-          {menuCollapsed ? '›' : '‹'}
-        </Button>
+        <div className="flex items-center gap-1">
+          {!menuCollapsed && onManage ? (
+            <Button
+              size="sm"
+              variant="tertiary"
+              className="h-6 px-2 text-[11px]"
+              onPress={onManage}
+              aria-label="管理工作区"
+            >
+              管理
+            </Button>
+          ) : null}
+          <Button
+            size="sm"
+            variant="tertiary"
+            className="h-6 w-6 min-w-0 p-0"
+            onPress={onToggle}
+            aria-label={menuCollapsed ? '展开' : '收起'}
+          >
+            {menuCollapsed ? '›' : '‹'}
+          </Button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto">
         <FlowTabs

@@ -5,8 +5,10 @@ import { parseFlowSpecFromMarkdown } from '@flowspec/parser';
 import {
   addEntry,
   ensureRegistryDir,
-  loadMark,
+  findRepoRoot,
+  loadFull,
   loadPreview,
+  loadWorkspace,
   removeEntry,
 } from '@flowspec/registry';
 import type { Command } from 'commander';
@@ -21,7 +23,7 @@ export function handleMoveFlowSpec(
   dest: string,
   opts: MoveFlowOptions = {}
 ): { srcId: string; destId: string; srcPath: string; destPath: string } {
-  const root = opts.root ? path.resolve(opts.root) : process.cwd();
+  const root = opts.root ? path.resolve(opts.root) : findRepoRoot(process.cwd());
   ensureRegistryDir(root);
   if (!src || !dest) throw new Error('Missing <src> <dest> for move');
   const srcAbs = path.isAbsolute(src) ? path.resolve(src) : path.resolve(root, src);
@@ -31,10 +33,11 @@ export function handleMoveFlowSpec(
   const relSrc = toRepoRelative(srcAbs, root);
   const relDest = toRepoRelative(destAbs, root);
   const destId = deriveIdFromPath(dest);
-  const mark = loadMark(root);
+  const workspace = loadWorkspace(root);
   const preview = loadPreview(root);
+  const full = loadFull(root);
   let srcId: string | null = null;
-  for (const [k, v] of Object.entries(mark.entries))
+  for (const [k, v] of Object.entries(workspace.entries))
     if (v.path === relSrc) {
       srcId = k;
       break;
@@ -45,12 +48,19 @@ export function handleMoveFlowSpec(
         srcId = k;
         break;
       }
+  if (!srcId)
+    for (const [k, v] of Object.entries(full.entries))
+      if (v.path === relSrc) {
+        srcId = k;
+        break;
+      }
   if (!srcId) {
     const candidate = deriveIdFromPath(src);
-    if (candidate in mark.entries || candidate in preview.entries) srcId = candidate;
-    else if (src in mark.entries || src in preview.entries) srcId = src;
+    if (candidate in workspace.entries || candidate in preview.entries || candidate in full.entries)
+      srcId = candidate;
+    else if (src in workspace.entries || src in preview.entries || src in full.entries) srcId = src;
   }
-  if (destId in mark.entries || destId in preview.entries)
+  if (destId in workspace.entries || destId in preview.entries || destId in full.entries)
     throw new Error(`Destination id already exists in registry: ${destId}`);
   const rawSrc = fs.readFileSync(srcAbs, 'utf-8');
   const preParsed = parseFlowSpecFromMarkdown(rawSrc);
@@ -87,12 +97,12 @@ export function handleMoveFlowSpec(
   }
   if (srcId) {
     const now = new Date().toISOString();
-    if (srcId in mark.entries) {
-      const old = mark.entries[srcId];
+    if (srcId in workspace.entries) {
+      const old = workspace.entries[srcId];
       if (old) {
-        removeEntry('mark', srcId, root);
+        removeEntry('workspace', srcId, root);
         addEntry(
-          'mark',
+          'workspace',
           destId,
           {
             path: relDest,
@@ -123,11 +133,39 @@ export function handleMoveFlowSpec(
         );
       }
     }
+    if (srcId in full.entries) {
+      const old = full.entries[srcId];
+      if (old) {
+        removeEntry('full', srcId, root);
+        addEntry(
+          'full',
+          destId,
+          {
+            path: relDest,
+            title: old.title,
+            rootId: old.rootId,
+            addedAt: old.addedAt,
+            updatedAt: now,
+          },
+          root
+        );
+      }
+    } else {
+      // src not tracked but file moved: ensure full has new entry
+      try {
+        const title = (validated as Extract<typeof validated, { success: true }>).data.title;
+        const rootId = (validated as Extract<typeof validated, { success: true }>).data.rootId;
+        addEntry('full', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+      } catch {}
+    }
   } else {
     const now = new Date().toISOString();
     const title = (validated as Extract<typeof validated, { success: true }>).data.title;
     const rootId = (validated as Extract<typeof validated, { success: true }>).data.rootId;
-    addEntry('mark', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+    addEntry('workspace', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+    try {
+      addEntry('full', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+    } catch {}
   }
   return { srcId: srcId ?? deriveIdFromPath(src), destId, srcPath: relSrc, destPath: relDest };
 }
@@ -135,7 +173,7 @@ export function handleMoveFlowSpec(
 export function registerMoveCommand(flow: Command): void {
   flow
     .command('move')
-    .description('Move/rename a FlowSpec file and update registry entries (both mark and preview)')
+    .description('Move/rename a FlowSpec file and update registry entries (workspace/preview/full)')
     .argument('<src>', 'Source path')
     .argument('<dest>', 'Destination path')
     .action((src: string, dest: string) => {

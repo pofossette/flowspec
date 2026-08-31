@@ -26,10 +26,18 @@ export function ensureRegistryDir(root?: string): string {
   return dir;
 }
 
+export function workspacePath(root?: string): string {
+  return path.join(resolveRegistryDir(root), 'workspace.json');
+}
+
 export function markPath(root?: string): string {
   return path.join(resolveRegistryDir(root), 'mark.json');
 }
 
 export function previewPath(root?: string): string {
   return path.join(resolveRegistryDir(root), 'preview.json');
+}
+
+export function fullPath(root?: string): string {
+  return path.join(resolveRegistryDir(root), 'full.json');
 }

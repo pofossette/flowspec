@@ -55,7 +55,7 @@ describe('flow add', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('add happy — auto-creates .flowspec and registers mark', () => {
+  it('add happy — auto-creates .flowspec and registers workspace', () => {
     const dir = path.join(root, 'flowspec');
     fs.mkdirSync(dir, { recursive: true });
     const file = path.join(dir, 'demo.md');
@@ -67,7 +67,7 @@ describe('flow add', () => {
     const mark = loadMark(root);
     expect(mark.entries.demo).toBeDefined();
     expect(mark.entries.demo?.title).toBe('Demo MD');
-    expect(fs.existsSync(path.join(root, '.flowspec', 'mark.json'))).toBe(true);
+    expect(fs.existsSync(path.join(root, '.flowspec', 'workspace.json'))).toBe(true);
     // no tmp leftover
     const files = fs.readdirSync(path.join(root, '.flowspec'));
     expect(files.some((f) => f.includes('.tmp.'))).toBe(false);

@@ -1,21 +1,22 @@
 import * as path from 'node:path';
 import { atomicWrite, deriveId, readRegistryFile, tryParseSpec, walkFiles } from './helpers.js';
-import { ensureRegistryDir, markPath, previewPath } from './paths.js';
+import { ensureRegistryDir, fullPath, previewPath, workspacePath } from './paths.js';
 import { nowIso, type Registry } from './types.js';
 
 export interface SyncOptions {
   flowspecDir?: string;
-  kind?: 'mark' | 'preview';
+  kind?: 'workspace' | 'preview' | 'full' | 'mark';
   prune?: boolean;
 }
 
 export function syncFromFilesystem(root?: string, opts: SyncOptions = {}): Registry {
   const flowspecDir =
     opts.flowspecDir ?? path.join(root ? path.resolve(root) : process.cwd(), 'flowspec');
-  const kind = opts.kind ?? 'mark';
+  const rawKind = opts.kind ?? 'full';
+  const kind = rawKind === 'mark' ? 'workspace' : (rawKind as 'workspace' | 'preview' | 'full');
   const prune = opts.prune ?? true;
   ensureRegistryDir(root);
-  const file = kind === 'mark' ? markPath(root) : previewPath(root);
+  const file = kind === 'workspace' ? workspacePath(root) : kind === 'preview' ? previewPath(root) : fullPath(root);
   const reg = readRegistryFile(file);
   const files: string[] = [];
   walkFiles(path.resolve(flowspecDir), files);

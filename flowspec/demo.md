@@ -1,85 +1,32 @@
 ---
-locked: false
-version: 1.0.0
-rootId: root-1
 title: Demo MD
-updatedAt: 2026-08-30T02:49:01.749Z
+rootId: root-1
+locked: true
 ---
 
 # Demo MD
 
 > AI-generated mind-map spec, editable on web canvas.
 
-^^^block
-type: node
-id: root-1
-kind: root
-label: User Auth Feature
-status: todo
----
+^^^node:root-1:root-1:root:null:null:null:User Auth Feature:todo
 ^^^
-^^^block
-type: node
-id: n1
-kind: branch
-label: Requirements
----
+^^^node:n1:n1:branch:null:null:null:Requirements
 OAuth2 + RBAC + audit log
 ^^^
-^^^block
-type: node
-id: n2
-kind: task
-label: API design
----
+^^^node:n2:n2:task:null:null:null:API design
 POST /auth/login, session mgmt
 ^^^
-^^^block
-type: node
-id: n3
-kind: task
-label: UI — Login page
----
-React form + validation
+^^^node:n3:n3:task:null:null:null:UI — Login page
+/
 ^^^
-^^^block
-type: node
-id: n4
-kind: decision
-label: Storage choice
----
+^^^node:n4:n4:decision:null:null:null:Storage choice
 PG vs redis session?
 ^^^
-^^^block
-type: edge
-id: e1
-source: root-1
-target: n1
-kind: hierarchical
----
+^^^edge:root-1:e1:hierarchical:0:0:n1
 ^^^
-^^^block
-type: edge
-id: e2
-source: root-1
-target: n2
-kind: hierarchical
----
+^^^edge:root-1:e2:hierarchical:0:0:n2
 ^^^
-^^^block
-type: edge
-id: e3
-source: root-1
-target: n3
-kind: hierarchical
----
+^^^edge:root-1:e3:hierarchical:0:0:n3
 ^^^
-^^^block
-type: edge
-id: e4
-source: n1
-target: n4
-kind: dependency
-label: blocks
----
+^^^edge:n1:e4:dependency:0:0:n4:blocks
 ^^^

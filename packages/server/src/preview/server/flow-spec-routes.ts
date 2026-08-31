@@ -29,7 +29,7 @@ import {
 } from './helpers.js';
 
 export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string): void {
-  // REST: GET list — 供多标签页左侧菜单自动读取 ./flowspec 下 json
+  // REST: GET list — 预览面板只展示 .flowspec/workspace.json（运行目录下），不走文件扫描回退；workspace 为预览入口
   app.get('/api/flow-spec', async (req, reply) => {
     const dirParam = resolveFlowspecDir(
       (req.query as Record<string, string> | undefined)?.dir as string | undefined,
@@ -38,11 +38,11 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dir = path.resolve(dirParam);
     let entries: Array<{ id: string; title: string; path: string; rootId: string }> = [];
     try {
-      const { loadMark } = await import('@flowspec/registry');
+      const { loadWorkspace } = await import('@flowspec/registry');
       const repoRoot = path.dirname(dir);
       for (const r of [process.cwd(), repoRoot]) {
         try {
-          const reg = loadMark(r);
+          const reg = loadWorkspace(r);
           const list = Object.entries(reg.entries)
             .filter(([, v]) => {
               const p = v?.path as string | undefined;
@@ -61,36 +61,150 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
         } catch {}
       }
     } catch {}
-    if (entries.length === 0 && fs.existsSync(dir)) {
-      const walk = (d: string): string[] => {
-        const out: string[] = [];
-        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-          const p = path.join(d, e.name);
-          if (e.isDirectory()) out.push(...walk(p));
-          else if (e.isFile() && (e.name.endsWith('.md') || e.name.endsWith('.json'))) out.push(p);
-        }
-        return out;
-      };
-      for (const p of walk(dir)) {
+    // 不再回退扫描：只返回 workspace.json 已注册项
+    return reply.send({ ok: true, dir, entries, source: 'workspace' });
+  });
+
+  // REST: GET full list — .flowspec/full.json 全量扫描（当前目录下所有 flowspec 文档）
+  app.get('/api/flow-spec/full', async (req, reply) => {
+    const dirParam = resolveFlowspecDir(
+      (req.query as Record<string, string> | undefined)?.dir as string | undefined,
+      flowspecDir
+    );
+    const dir = path.resolve(dirParam);
+    // ensure full.json is synced
+    try {
+      const { syncFromFilesystem } = await import('@flowspec/registry');
+      const repoRoot = path.dirname(dir);
+      // try both cwd and repoRoot
+      for (const r of [repoRoot, process.cwd()]) {
         try {
-          const raw = fs.readFileSync(p, 'utf-8');
-          let parsed: unknown = null;
-          if (p.endsWith('.md') && isMarkdownFlowSpec(raw)) parsed = parseFlowSpecFromMarkdown(raw);
-          else if (p.endsWith('.json')) {
-            try {
-              parsed = JSON.parse(raw);
-            } catch {}
-          }
-          const v = parsed ? flowSpecSchema.safeParse(parsed) : null;
-          if (v?.success) {
-            const rel = path.relative(process.cwd(), p).split(path.sep).join('/');
-            const id = path.basename(p, path.extname(p));
-            entries.push({ id, title: v.data.title, path: rel, rootId: v.data.rootId });
+          syncFromFilesystem(r, { flowspecDir: dir, kind: 'full', prune: true });
+          break;
+        } catch {}
+      }
+    } catch {}
+    let entries: Array<{ id: string; title: string; path: string; rootId: string }> = [];
+    try {
+      const { loadFull } = await import('@flowspec/registry');
+      const repoRoot = path.dirname(dir);
+      for (const r of [process.cwd(), repoRoot]) {
+        try {
+          const reg = loadFull(r);
+          const list = Object.entries(reg.entries)
+            .filter(([, v]) => {
+              const p = v?.path as string | undefined;
+              return !p || p.startsWith('flowspec/') || path.resolve(r, p).startsWith(dir);
+            })
+            .map(([k, v]) => ({
+              id: k,
+              title: (v as { title: string }).title,
+              path: (v as { path: string }).path,
+              rootId: (v as { rootId: string }).rootId,
+            }));
+          if (list.length > 0) {
+            entries = list;
+            break;
           }
         } catch {}
       }
+    } catch {}
+    return reply.send({ ok: true, dir, entries, source: 'full' });
+  });
+
+  // Workspace add/remove — 供工作区弹窗“移入/移出”使用（仅操作 workspace.json，不删文件；移出保留 full）
+  app.post('/api/workspace/add', async (req, reply) => {
+    const body = req.body as { id?: string; dir?: string } | undefined;
+    const dirParam = resolveFlowspecDir(
+      (body?.dir as string | undefined) ?? (req.query as Record<string, string> | undefined)?.dir as string | undefined,
+      flowspecDir
+    );
+    const dir = path.resolve(dirParam);
+    const id = (body?.id as string | undefined)?.trim() ?? (req.query as Record<string, string> | undefined)?.id?.trim();
+    if (!id) return reply.code(400).send({ ok: false, error: 'missing id' });
+    try {
+      const { loadFull, loadWorkspace, addEntry } = await import('@flowspec/registry');
+      const { syncFromFilesystem } = await import('@flowspec/registry');
+      const repoRoot = path.dirname(dir);
+      // ensure full is fresh
+      for (const r of [repoRoot, process.cwd()]) {
+        try { syncFromFilesystem(r, { flowspecDir: dir, kind: 'full', prune: true }); break; } catch {}
+      }
+      // find entry in full (or workspace) to get path/title
+      let entry: { path: string; title: string; rootId: string } | null = null;
+      for (const r of [repoRoot, process.cwd()]) {
+        try {
+          const full = loadFull(r);
+          if (full.entries[id]) { entry = full.entries[id] as unknown as typeof entry; break; }
+          const ws = loadWorkspace(r);
+          if (ws.entries[id]) { entry = ws.entries[id] as unknown as typeof entry; break; }
+        } catch {}
+      }
+      // fallback: try parse file directly at flowspecDir/id.md
+      if (!entry) {
+        const candidate = path.join(dir, `${id}.md`);
+        if (fs.existsSync(candidate)) {
+          try {
+            const raw = fs.readFileSync(candidate, 'utf-8');
+            const parsed = parseFlowSpecFromMarkdown(raw);
+            if (parsed) entry = { path: path.relative(path.dirname(dir), candidate).split(path.sep).join('/'), title: parsed.title, rootId: parsed.rootId };
+          } catch {}
+        }
+      }
+      if (!entry) return reply.code(404).send({ ok: false, error: `flowspec "${id}" not found in full` });
+      // add to workspace (and ensure full has it)
+      for (const r of [repoRoot, process.cwd()]) {
+        try {
+          const ws = loadWorkspace(r);
+          if (!(id in ws.entries)) {
+            const now = new Date().toISOString();
+            addEntry('workspace', id, { path: entry.path, title: entry.title, rootId: entry.rootId, addedAt: now, updatedAt: now }, r);
+          }
+          const full = loadFull(r);
+          if (!(id in full.entries)) {
+            const now = new Date().toISOString();
+            addEntry('full', id, { path: entry.path, title: entry.title, rootId: entry.rootId, addedAt: now, updatedAt: now }, r);
+          }
+          break;
+        } catch {}
+      }
+      return reply.send({ ok: true, id });
+    } catch (e: unknown) {
+      return reply.code(500).send({ ok: false, error: toApiError(e) });
     }
-    return reply.send({ ok: true, dir, entries });
+  });
+
+  app.post('/api/workspace/remove', async (req, reply) => {
+    const body = req.body as { id?: string; dir?: string } | undefined;
+    const dirParam = resolveFlowspecDir(
+      (body?.dir as string | undefined) ?? (req.query as Record<string, string> | undefined)?.dir as string | undefined,
+      flowspecDir
+    );
+    const dir = path.resolve(dirParam);
+    const id = (body?.id as string | undefined)?.trim() ?? (req.query as Record<string, string> | undefined)?.id?.trim();
+    if (!id) return reply.code(400).send({ ok: false, error: 'missing id' });
+    try {
+      const { loadWorkspace, removeEntry } = await import('@flowspec/registry');
+      const repoRoot = path.dirname(dir);
+      let removed = false;
+      for (const r of [repoRoot, process.cwd()]) {
+        try {
+          const ws = loadWorkspace(r);
+          if (id in ws.entries) {
+            removed = removeEntry('workspace', id, r);
+            break;
+          }
+        } catch {}
+      }
+      // try fallback root
+      if (!removed) {
+        try { removed = removeEntry('workspace', id, repoRoot); } catch {}
+      }
+      if (!removed) return reply.code(404).send({ ok: false, error: `id not in workspace: ${id}` });
+      return reply.send({ ok: true, id });
+    } catch (e: unknown) {
+      return reply.code(500).send({ ok: false, error: toApiError(e) });
+    }
   });
 
   // REST: GET spec — 兼容前端默认 dir=flowspec 与 --dir 绝对路径不一致，自动回退到 flowspecDir

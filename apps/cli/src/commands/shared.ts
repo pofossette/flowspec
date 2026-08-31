@@ -36,10 +36,13 @@ export function resolveDir(cwd: string, dir: string): string {
   return path.isAbsolute(dir) ? path.resolve(dir) : path.resolve(cwd, dir);
 }
 
-export async function syncFromFilesystemSafe(root?: string): Promise<void> {
+export async function syncFromFilesystemSafe(root?: string, flowspecDir?: string): Promise<void> {
   try {
     const { syncFromFilesystem } = await import('@flowspec/registry');
-    syncFromFilesystem(path.resolve(root ?? process.cwd()));
+    const resolvedRoot = path.resolve(root ?? process.cwd());
+    const dir = flowspecDir ? path.resolve(flowspecDir) : path.join(resolvedRoot, 'flowspec');
+    // full.json = 全量扫描；workspace.json 仅显式 add/remove，不自动同步
+    syncFromFilesystem(resolvedRoot, { flowspecDir: dir, kind: 'full', prune: true });
   } catch (e: unknown) {
     if (process.env.DEBUG) console.warn('[flowspec] syncFromFilesystem failed', e);
   }

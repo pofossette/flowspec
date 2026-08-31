@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { flowSpecExample } from '@flowspec/domain';
 import { serializeFlowSpecToMarkdown } from '@flowspec/parser';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ensureRegistryDir, markPath, previewPath, resolveRegistryDir } from './paths.js';
+import { ensureRegistryDir, fullPath, previewPath, resolveRegistryDir, workspacePath } from './paths.js';
 import {
   addEntry,
   addEntryAsync,
@@ -55,11 +55,11 @@ describe('registry paths', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('markPath/previewPath', () => {
+  it('workspacePath/previewPath', () => {
     const root = tmpDir();
-    expect(markPath(root).endsWith('mark.json')).toBe(true);
+    expect(workspacePath(root).endsWith('workspace.json')).toBe(true);
     expect(previewPath(root).endsWith('preview.json')).toBe(true);
-    expect(markPath(root).includes('.flowspec')).toBe(true);
+    expect(workspacePath(root).includes('.flowspec')).toBe(true);
     fs.rmSync(root, { recursive: true, force: true });
   });
 });
@@ -92,7 +92,7 @@ describe('registry store', () => {
     expect(fs.existsSync(dir)).toBe(false);
     saveMark(loadMark(root), root);
     expect(fs.existsSync(dir)).toBe(true);
-    expect(fs.existsSync(markPath(root))).toBe(true);
+    expect(fs.existsSync(workspacePath(root))).toBe(true);
     // no tmp leftover
     const files = fs.readdirSync(dir);
     expect(files.some((f) => f.includes('.tmp.'))).toBe(false);
@@ -180,7 +180,7 @@ describe('registry store', () => {
     };
     // parallel saveMarkAsync via queue
     await Promise.all([saveMarkAsync(r1, root), saveMarkAsync(r2, root)]);
-    const file = markPath(root);
+    const file = workspacePath(root);
     expect(fs.existsSync(file)).toBe(true);
     const raw = fs.readFileSync(file, 'utf-8');
     // must be valid JSON and valid registry
@@ -265,7 +265,8 @@ describe('registry store', () => {
   it('syncFromFilesystem handles missing flowspec dir', () => {
     const reg = syncFromFilesystem(root, { flowspecDir: path.join(root, 'no-such-dir') });
     expect(reg.entries).toEqual({});
-    expect(fs.existsSync(markPath(root))).toBe(true);
+    // default kind is now 'full', so full.json is created
+    expect(fs.existsSync(fullPath(root))).toBe(true);
   });
 
   it('savePreview and listPreview round-trip', () => {

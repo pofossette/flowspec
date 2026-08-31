@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { usePreviewStore } from '../store/preview-store.js';
 
-export type FlowListEntry = { id: string; title: string; path: string };
+export type FlowListEntry = { id: string; title: string; path: string; rootId: string };
 
 export function useFlowList(opts: { dir: string; api: (p: string) => string; initialId: string }): {
   flowList: FlowListEntry[];
@@ -10,6 +10,7 @@ export function useFlowList(opts: { dir: string; api: (p: string) => string; ini
   menuCollapsed: boolean;
   setMenuCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   handleSwitchFlow: (nextId: string) => void;
+  refresh: () => void;
 } {
   const { dir, api, initialId } = opts;
   const [activeId, setActiveId] = React.useState(initialId);
@@ -17,20 +18,20 @@ export function useFlowList(opts: { dir: string; api: (p: string) => string; ini
   const [menuCollapsed, setMenuCollapsed] = React.useState(false);
   const setSelection = usePreviewStore((s) => s.setSelection);
 
-  React.useEffect(() => {
-    let cancelled = false;
+  const refresh = React.useCallback(() => {
     void (async () => {
       try {
         const res = await fetch(api(`/api/flow-spec?dir=${encodeURIComponent(dir)}`));
         if (!res.ok) return;
         const j = (await res.json()) as { entries?: FlowListEntry[] };
-        if (!cancelled && j.entries) setFlowList(j.entries);
+        if (j.entries) setFlowList(j.entries);
       } catch {}
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [api, dir]);
+
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const handleSwitchFlow = React.useCallback(
     (nextId: string) => {
@@ -59,5 +60,6 @@ export function useFlowList(opts: { dir: string; api: (p: string) => string; ini
     menuCollapsed,
     setMenuCollapsed,
     handleSwitchFlow,
+    refresh,
   };
 }

@@ -2,7 +2,14 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { readLockFromMarkdown, writeLockToMarkdown } from '@flowspec/lock';
 import { stripBlocks } from '@flowspec/parser';
-import { ensureRegistryDir, loadMark, loadPreview, removeEntry } from '@flowspec/registry';
+import {
+  ensureRegistryDir,
+  findRepoRoot,
+  loadFull,
+  loadPreview,
+  loadWorkspace,
+  removeEntry,
+} from '@flowspec/registry';
 import type { Command } from 'commander';
 
 export interface RemoveFlowOptions {
@@ -13,18 +20,25 @@ export interface RemoveFlowOptions {
 export function handleRemoveFlowSpec(
   id: string,
   opts: RemoveFlowOptions = {}
-): { removedMark: boolean; removedPreview: boolean } {
-  const root = opts.root ? path.resolve(opts.root) : process.cwd();
+): { removedWorkspace: boolean; removedMark: boolean; removedPreview: boolean; removedFull: boolean } {
+  const root = opts.root ? path.resolve(opts.root) : findRepoRoot(process.cwd());
   ensureRegistryDir(root);
   if (!id?.trim()) throw new Error('Missing <id> for remove');
   const cleanId = id.trim();
-  const markBefore = loadMark(root);
+  const workspaceBefore = loadWorkspace(root);
   const previewBefore = loadPreview(root);
-  const entry = markBefore.entries[cleanId] ?? previewBefore.entries[cleanId] ?? null;
+  const fullBefore = loadFull(root);
+  const entry =
+    workspaceBefore.entries[cleanId] ?? previewBefore.entries[cleanId] ?? fullBefore.entries[cleanId] ?? null;
   const filePathForBlocks = entry ? path.resolve(root, entry.path) : null;
-  const removedMark = removeEntry('mark', cleanId, root);
+  const removedWorkspace = removeEntry('workspace', cleanId, root);
   const removedPreview = removeEntry('preview', cleanId, root);
-  if (!removedMark && !removedPreview) throw new Error(`id not found in registry: ${cleanId}`);
+  // 按新要求：remove 同时清理 full 中的链接
+  const removedFull = removeEntry('full', cleanId, root);
+  if (!removedWorkspace && !removedPreview && !removedFull)
+    throw new Error(`id not found in registry: ${cleanId}`);
+  // 兼容返回字段：同时提供 removedMark 别名
+  const anyRemoved = removedWorkspace || removedPreview || removedFull;
   if (opts.deleteBlocks && filePathForBlocks && fs.existsSync(filePathForBlocks)) {
     const raw = fs.readFileSync(filePathForBlocks, 'utf-8');
     const origLock = readLockFromMarkdown(raw);
@@ -52,7 +66,13 @@ export function handleRemoveFlowSpec(
     const nextContent = writeLockToMarkdown(stripped, lockPatch);
     fs.writeFileSync(filePathForBlocks, nextContent, 'utf-8');
   }
-  return { removedMark, removedPreview };
+  // 兼容返回字段
+  return {
+    removedWorkspace,
+    removedPreview,
+    removedFull,
+    removedMark: removedWorkspace,
+  } as { removedWorkspace: boolean; removedPreview: boolean; removedFull: boolean; removedMark: boolean };
 }
 
 export function registerRemoveCommand(flow: Command): void {
@@ -67,10 +87,22 @@ export function registerRemoveCommand(flow: Command): void {
     )
     .action((id: string, opts: { deleteBlocks?: boolean }) => {
       try {
-        const res = handleRemoveFlowSpec(id, { deleteBlocks: opts.deleteBlocks });
+        const res = handleRemoveFlowSpec(id, { deleteBlocks: opts.deleteBlocks }) as unknown as {
+          removedWorkspace: boolean;
+          removedPreview: boolean;
+          removedFull: boolean;
+          removedMark?: boolean;
+        };
         console.log(
           JSON.stringify(
-            { ok: true, id, removedMark: res.removedMark, removedPreview: res.removedPreview },
+            {
+              ok: true,
+              id,
+              removedWorkspace: res.removedWorkspace ?? res.removedMark,
+              removedMark: res.removedWorkspace ?? res.removedMark,
+              removedPreview: res.removedPreview,
+              removedFull: res.removedFull,
+            },
             null,
             2
           )

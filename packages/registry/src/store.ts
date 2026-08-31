@@ -1,16 +1,33 @@
+import * as fs from 'node:fs';
 import { atomicWrite, enqueueWriteAsync, readRegistryFile } from './helpers.js';
-import { markPath, previewPath } from './paths.js';
+import { fullPath, markPath, previewPath, workspacePath } from './paths.js';
 import { nowIso, type Registry, type RegistryEntry, registrySchema } from './types.js';
 
 export { atomicWrite } from './helpers.js';
 export { type SyncOptions, syncFromFilesystem } from './sync.js';
 
 // single-process RMW only; atomicWrite is file-level tmp+rename, async queue for in-process concurrency
+function readWithMigration(pathPrimary: string, pathLegacy?: string): Registry {
+  if (!fs.existsSync(pathPrimary) && pathLegacy && fs.existsSync(pathLegacy)) {
+    try {
+      fs.copyFileSync(pathLegacy, pathPrimary);
+    } catch {}
+  }
+  return readRegistryFile(pathPrimary);
+}
+
+export function loadWorkspace(root?: string): Registry {
+  return readWithMigration(workspacePath(root), markPath(root));
+}
 export function loadMark(root?: string): Registry {
-  return readRegistryFile(markPath(root));
+  // deprecated alias: read workspace (with migration)
+  return loadWorkspace(root);
 }
 export function loadPreview(root?: string): Registry {
   return readRegistryFile(previewPath(root));
+}
+export function loadFull(root?: string): Registry {
+  return readRegistryFile(fullPath(root));
 }
 
 function buildSavePayload(registry: Registry): Registry {
@@ -25,28 +42,65 @@ function buildSavePayload(registry: Registry): Registry {
   return { ...data, updatedAt: now };
 }
 
+export function saveWorkspace(registry: Registry, root?: string): void {
+  const payload = buildSavePayload(registry);
+  atomicWrite(workspacePath(root), payload);
+}
 export function saveMark(registry: Registry, root?: string): void {
-  atomicWrite(markPath(root), buildSavePayload(registry));
+  saveWorkspace(registry, root);
 }
 export function savePreview(registry: Registry, root?: string): void {
   atomicWrite(previewPath(root), buildSavePayload(registry));
 }
+export function saveFull(registry: Registry, root?: string): void {
+  atomicWrite(fullPath(root), buildSavePayload(registry));
+}
+export async function saveWorkspaceAsync(registry: Registry, root?: string): Promise<void> {
+  const file = workspacePath(root);
+  await enqueueWriteAsync(file, () => {
+    const payload = buildSavePayload(registry);
+    atomicWrite(file, payload);
+  });
+}
 export async function saveMarkAsync(registry: Registry, root?: string): Promise<void> {
-  const file = markPath(root);
-  await enqueueWriteAsync(file, () => atomicWrite(file, buildSavePayload(registry)));
+  return saveWorkspaceAsync(registry, root);
 }
 export async function savePreviewAsync(registry: Registry, root?: string): Promise<void> {
   const file = previewPath(root);
   await enqueueWriteAsync(file, () => atomicWrite(file, buildSavePayload(registry)));
 }
+export async function saveFullAsync(registry: Registry, root?: string): Promise<void> {
+  const file = fullPath(root);
+  await enqueueWriteAsync(file, () => atomicWrite(file, buildSavePayload(registry)));
+}
+
+export type RegistryKind = 'workspace' | 'preview' | 'full' | 'mark';
+
+function normalizeKind(kind: RegistryKind): 'workspace' | 'preview' | 'full' {
+  if (kind === 'mark') return 'workspace';
+  return kind as 'workspace' | 'preview' | 'full';
+}
+
+function loadByKind(kind: RegistryKind, root?: string): Registry {
+  const k = normalizeKind(kind);
+  if (k === 'workspace') return loadWorkspace(root);
+  if (k === 'preview') return loadPreview(root);
+  return loadFull(root);
+}
+function saveByKind(kind: RegistryKind, reg: Registry, root?: string): void {
+  const k = normalizeKind(kind);
+  if (k === 'workspace') saveWorkspace(reg, root);
+  else if (k === 'preview') savePreview(reg, root);
+  else saveFull(reg, root);
+}
 
 export function addEntry(
-  kind: 'mark' | 'preview',
+  kind: RegistryKind,
   id: string,
   entry: RegistryEntry,
   root?: string
 ): Registry {
-  const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
+  const reg = loadByKind(kind, root);
   const now = nowIso();
   reg.entries[id] = {
     path: entry.path,
@@ -56,38 +110,48 @@ export function addEntry(
     updatedAt: entry.updatedAt ?? now,
   };
   reg.updatedAt = now;
-  if (kind === 'mark') saveMark(reg, root);
-  else savePreview(reg, root);
-  return kind === 'mark' ? loadMark(root) : loadPreview(root);
+  saveByKind(kind, reg, root);
+  return loadByKind(kind, root);
+}
+export function addWorkspaceEntry(id: string, entry: RegistryEntry, root?: string): Registry {
+  return addEntry('workspace', id, entry, root);
 }
 export function addMarkEntry(id: string, entry: RegistryEntry, root?: string): Registry {
-  return addEntry('mark', id, entry, root);
+  return addWorkspaceEntry(id, entry, root);
 }
 export function addPreviewEntry(id: string, entry: RegistryEntry, root?: string): Registry {
   return addEntry('preview', id, entry, root);
 }
-export function removeEntry(kind: 'mark' | 'preview', id: string, root?: string): boolean {
-  const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
+export function addFullEntry(id: string, entry: RegistryEntry, root?: string): Registry {
+  return addEntry('full', id, entry, root);
+}
+export function removeEntry(kind: RegistryKind, id: string, root?: string): boolean {
+  const reg = loadByKind(kind, root);
   if (!(id in reg.entries)) return false;
   delete reg.entries[id];
   reg.updatedAt = nowIso();
-  if (kind === 'mark') saveMark(reg, root);
-  else savePreview(reg, root);
+  saveByKind(kind, reg, root);
   return true;
 }
+export function removeWorkspaceEntry(id: string, root?: string): boolean {
+  return removeEntry('workspace', id, root);
+}
 export function removeMarkEntry(id: string, root?: string): boolean {
-  return removeEntry('mark', id, root);
+  return removeWorkspaceEntry(id, root);
 }
 export function removePreviewEntry(id: string, root?: string): boolean {
   return removeEntry('preview', id, root);
 }
+export function removeFullEntry(id: string, root?: string): boolean {
+  return removeEntry('full', id, root);
+}
 export function updateEntry(
-  kind: 'mark' | 'preview',
+  kind: RegistryKind,
   id: string,
   patch: Partial<RegistryEntry>,
   root?: string
 ): Registry | null {
-  const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
+  const reg = loadByKind(kind, root);
   const existing = reg.entries[id];
   if (!existing) return null;
   const now = nowIso();
@@ -101,16 +165,22 @@ export function updateEntry(
   if (!parsed.success) return null;
   reg.entries[id] = updated;
   reg.updatedAt = now;
-  if (kind === 'mark') saveMark(reg, root);
-  else savePreview(reg, root);
-  return kind === 'mark' ? loadMark(root) : loadPreview(root);
+  saveByKind(kind, reg, root);
+  return loadByKind(kind, root);
+}
+export function updateWorkspaceEntry(
+  id: string,
+  patch: Partial<RegistryEntry>,
+  root?: string
+): Registry | null {
+  return updateEntry('workspace', id, patch, root);
 }
 export function updateMarkEntry(
   id: string,
   patch: Partial<RegistryEntry>,
   root?: string
 ): Registry | null {
-  return updateEntry('mark', id, patch, root);
+  return updateWorkspaceEntry(id, patch, root);
 }
 export function updatePreviewEntry(
   id: string,
@@ -120,76 +190,99 @@ export function updatePreviewEntry(
   return updateEntry('preview', id, patch, root);
 }
 export function moveEntry(
-  kind: 'mark' | 'preview',
+  kind: RegistryKind,
   oldId: string,
   newId: string,
   root?: string
 ): Registry | null {
-  if (oldId === newId) return kind === 'mark' ? loadMark(root) : loadPreview(root);
-  const reg = kind === 'mark' ? loadMark(root) : loadPreview(root);
+  if (oldId === newId) return loadByKind(kind, root);
+  const reg = loadByKind(kind, root);
   const existing = reg.entries[oldId];
   if (!existing) return null;
   const now = nowIso();
   reg.entries[newId] = { ...existing, updatedAt: now };
   delete reg.entries[oldId];
   reg.updatedAt = now;
-  if (kind === 'mark') saveMark(reg, root);
-  else savePreview(reg, root);
-  return kind === 'mark' ? loadMark(root) : loadPreview(root);
+  saveByKind(kind, reg, root);
+  return loadByKind(kind, root);
+}
+export function moveWorkspaceEntry(oldId: string, newId: string, root?: string): Registry | null {
+  return moveEntry('workspace', oldId, newId, root);
 }
 export function moveMarkEntry(oldId: string, newId: string, root?: string): Registry | null {
-  return moveEntry('mark', oldId, newId, root);
+  return moveWorkspaceEntry(oldId, newId, root);
 }
 export function movePreviewEntry(oldId: string, newId: string, root?: string): Registry | null {
   return moveEntry('preview', oldId, newId, root);
 }
+export function moveFullEntry(oldId: string, newId: string, root?: string): Registry | null {
+  return moveEntry('full', oldId, newId, root);
+}
 export function moveEntryBetween(
-  from: 'mark' | 'preview',
-  to: 'mark' | 'preview',
+  from: RegistryKind,
+  to: RegistryKind,
   id: string,
   newId?: string,
   root?: string
 ): Registry | null {
-  const src = from === 'mark' ? loadMark(root) : loadPreview(root);
+  const src = loadByKind(from, root);
   const entry = src.entries[id];
   if (!entry) return null;
-  const dst = to === 'mark' ? loadMark(root) : loadPreview(root);
+  const dst = loadByKind(to, root);
   const targetId = newId ?? id;
   dst.entries[targetId] = { ...entry, updatedAt: nowIso() };
   dst.updatedAt = nowIso();
   delete src.entries[id];
   src.updatedAt = nowIso();
-  if (from === 'mark') saveMark(src, root);
-  else savePreview(src, root);
-  if (to === 'mark') saveMark(dst, root);
-  else savePreview(dst, root);
+  saveByKind(from, src, root);
+  saveByKind(to, dst, root);
   return dst;
 }
+export function listWorkspace(root?: string): Array<RegistryEntry & { id: string }> {
+  return Object.entries(loadWorkspace(root).entries).map(([id, e]) => ({ id, ...e }));
+}
 export function listMark(root?: string): Array<RegistryEntry & { id: string }> {
-  return Object.entries(loadMark(root).entries).map(([id, e]) => ({ id, ...e }));
+  return listWorkspace(root);
 }
 export function listPreview(root?: string): Array<RegistryEntry & { id: string }> {
   return Object.entries(loadPreview(root).entries).map(([id, e]) => ({ id, ...e }));
 }
+export function listFull(root?: string): Array<RegistryEntry & { id: string }> {
+  return Object.entries(loadFull(root).entries).map(([id, e]) => ({ id, ...e }));
+}
 export function isRegistered(
   id: string,
-  kind: 'mark' | 'preview' | 'any' = 'any',
+  kind: RegistryKind | 'any' = 'any',
   root?: string
 ): boolean {
-  if (kind === 'mark') return id in loadMark(root).entries;
+  if (kind === 'workspace' || kind === 'mark') return id in loadWorkspace(root).entries;
   if (kind === 'preview') return id in loadPreview(root).entries;
-  return id in loadMark(root).entries || id in loadPreview(root).entries;
+  if (kind === 'full') return id in loadFull(root).entries;
+  return id in loadWorkspace(root).entries || id in loadPreview(root).entries || id in loadFull(root).entries;
 }
 export async function addEntryAsync(
-  kind: 'mark' | 'preview',
+  kind: RegistryKind,
   id: string,
   entry: RegistryEntry,
   root?: string
 ): Promise<Registry> {
-  const file = kind === 'mark' ? markPath(root) : previewPath(root);
+  const k = normalizeKind(kind);
+  const file = k === 'workspace' ? workspacePath(root) : k === 'preview' ? previewPath(root) : fullPath(root);
   let result!: Registry;
   await enqueueWriteAsync(file, () => {
     const current = readRegistryFile(file);
+    // migration for workspace: if file empty and legacy exists, copy first
+    if (k === 'workspace' && Object.keys(current.entries).length === 0) {
+      const legacy = markPath(root);
+      if (fs.existsSync(legacy) && !fs.existsSync(file)) {
+        try {
+          const legacyData = readRegistryFile(legacy);
+          if (Object.keys(legacyData.entries).length > 0) {
+            current.entries = { ...legacyData.entries };
+          }
+        } catch {}
+      }
+    }
     const now = nowIso();
     current.entries[id] = {
       path: entry.path,

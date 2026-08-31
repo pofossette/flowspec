@@ -23,7 +23,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests",
-    "dev": "tsx src/run.ts --help"
+    "dev": "tsx src/run.ts"
   },
   "dependencies": {
     "@flowspec/ai": "workspace:*",

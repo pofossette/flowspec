@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AppHeader } from './components/AppHeader.js';
 import { FlowAside } from './components/FlowAside.js';
 import { LeftNav } from './components/LeftNav.js';
+import { WorkspaceModal } from './components/WorkspaceModal.js';
 import { useFlowActions } from './hooks/useFlowActions.js';
 import { useFlowList } from './hooks/useFlowList.js';
 import { useFlowSync } from './hooks/useFlowSync.js';
@@ -42,10 +43,30 @@ export default function App(): React.JSX.Element {
   const apiBase = query.get('api') ?? '';
   const api = React.useCallback((p: string) => `${apiBase}${p}`, [apiBase]);
 
-  const { flowList, activeId, id, menuCollapsed, setMenuCollapsed, handleSwitchFlow } = useFlowList(
+  const { flowList, activeId, id, menuCollapsed, setMenuCollapsed, handleSwitchFlow, refresh } = useFlowList(
     { dir, api, initialId }
   );
   const { fetchAll, wsSend } = useFlowSync({ api, apiBase, id, dir, holder });
+  const [workspaceModalOpen, setWorkspaceModalOpen] = React.useState(false);
+  const [fullList, setFullList] = React.useState<Array<{ id: string; title: string; path: string; rootId: string }>>([]);
+
+  const refreshFull = React.useCallback(async () => {
+    try {
+      const res = await fetch(api(`/api/flow-spec/full?dir=${encodeURIComponent(dir)}`));
+      if (!res.ok) return;
+      const j = (await res.json()) as { entries?: Array<{ id: string; title: string; path: string; rootId: string }> };
+      if (j.entries) setFullList(j.entries);
+    } catch {}
+  }, [api, dir]);
+
+  React.useEffect(() => {
+    if (workspaceModalOpen) void refreshFull();
+  }, [workspaceModalOpen, refreshFull]);
+
+  const handleWorkspaceRefresh = React.useCallback(() => {
+    refresh();
+    void refreshFull();
+  }, [refresh, refreshFull]);
   const { spec, draft, selection, message, loading, error, saving, setSelection } =
     usePreviewStore();
   const { mode, setMode, effectiveTheme } = useThemeSync();
@@ -123,6 +144,16 @@ export default function App(): React.JSX.Element {
             menuCollapsed={menuCollapsed}
             onToggle={() => setMenuCollapsed((v) => !v)}
             onSwitchFlow={handleSwitchFlow}
+            onManage={() => setWorkspaceModalOpen(true)}
+          />
+          <WorkspaceModal
+            open={workspaceModalOpen}
+            onClose={() => setWorkspaceModalOpen(false)}
+            dir={dir}
+            api={api}
+            workspaceList={flowList as Array<{ id: string; title: string; path: string; rootId: string }>}
+            fullList={fullList}
+            onRefresh={handleWorkspaceRefresh}
           />
           <div className="flex flex-1 min-w-0 flex-col bg-panel-bg p-4 min-h-0">
             <div className="flex-1 min-h-0 relative">

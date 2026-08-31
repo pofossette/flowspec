@@ -9,12 +9,16 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter @flowspec/web-app dev",
+    "dev": "pnpm --filter flowspec dev",
+    "dev:web": "pnpm --filter @flowspec/web-app dev",
+    "dev:cli": "pnpm --filter flowspec dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm --filter @flowspec/domain test && pnpm --filter @flowspec/parser test && pnpm --filter @flowspec/registry test && pnpm --filter @flowspec/lock test && pnpm --filter flowspec test",
     "cli": "pnpm --filter flowspec exec node ./dist/run.js",
+    "cli:dev": "pnpm --filter flowspec dev",
     "serve": "pnpm --filter flowspec exec node ./dist/run.js flow serve",
+    "serve:dev": "pnpm --filter flowspec dev flow serve",
     "preview:build": "pnpm --filter @flowspec/web-app build",
     "lint": "biome check .",
     "lint:fix": "biome check --write --unsafe .",

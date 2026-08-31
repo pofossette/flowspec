@@ -23,7 +23,7 @@ export function registerServeCommand(flow: Command): void {
         ? path.resolve(opts.dir)
         : path.resolve(repoRoot, opts.dir);
       fs.mkdirSync(absoluteDir, { recursive: true });
-      await syncFromFilesystemSafe(repoRoot);
+      await syncFromFilesystemSafe(repoRoot, absoluteDir);
       const pidPath = pidFilePath(absoluteDir);
       // 兼容旧位置 flowspec/.flowspec.pid，迁移时清理
       const legacyPidPath = path.join(absoluteDir, '.flowspec.pid');

@@ -8,7 +8,7 @@ import {
   parseBlocks,
   parseFlowSpecFromMarkdown,
 } from '@flowspec/parser';
-import { ensureRegistryDir, findRepoRoot, loadMark, loadPreview } from '@flowspec/registry';
+import { ensureRegistryDir, findRepoRoot, loadPreview, loadWorkspace } from '@flowspec/registry';
 import type { Command } from 'commander';
 import { toRepoRelative } from './shared.js';
 
@@ -191,7 +191,7 @@ export function handleCheckFlowSpec(
     // ignore if cannot ensure (e.g. in temp test dir)
   }
   if (opts.all) {
-    const reg = loadMark(root);
+    const reg = loadWorkspace(root);
     const ids = Object.keys(reg.entries);
     if (ids.length === 0) return [];
     const results: CheckResult[] = [];
@@ -222,9 +222,9 @@ export function handleCheckFlowSpec(
     abs = tryResolveFile(target, candidateRoots) ?? tryResolveFile(target, [path.join(repoRoot, 'flowspec')]);
     if (abs) label = toRepoRelative(abs, repoRoot);
   } else {
-    const mark = loadMark(root);
+    const workspace = loadWorkspace(root);
     const preview = loadPreview(root);
-    const entry = mark.entries[target] ?? preview.entries[target];
+    const entry = workspace.entries[target] ?? preview.entries[target];
     if (entry) {
       abs = path.resolve(repoRoot, entry.path);
       label = target;
@@ -258,7 +258,7 @@ export function registerCheckCommand(flow: Command): void {
       'Check syntax: block划分 (^^^node/^ ^edge 一行式 metadata:id:type:x:y:targetid) + 头部 title/rootId + 图结构；未被 ^^^ 包裹的内容默认不渲染'
     )
     .argument('[target]', 'id or path to check (omit with --all)')
-    .option('--all', 'Check all entries in mark.json', false)
+    .option('--all', 'Check all entries in workspace.json', false)
     .option('--verbose', 'Show warnings and info', false)
     .action((target: string | undefined, opts: { all?: boolean; verbose?: boolean }) => {
       try {
