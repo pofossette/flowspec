@@ -3,6 +3,7 @@ import * as React from 'react';
 import { AppHeader } from './components/AppHeader.js';
 import { FlowAside } from './components/FlowAside.js';
 import { LeftNav } from './components/LeftNav.js';
+import { VCursorOverlay } from '@flowspec/web';
 
 // 重型组件按需懒加载，减少首屏 JS
 const FlowMapCanvas = React.lazy(() =>
@@ -44,6 +45,13 @@ class ErrorBoundary extends React.Component<
 
 export default function App(): React.JSX.Element {
   const query = useQuery();
+  const showVCursor =
+    query.get('vcursor') === '1' ||
+    // Vite build-time flag for E2E (also supports process.env.E2E when polyfilled)
+    (typeof import.meta !== 'undefined' &&
+      (import.meta as unknown as { env?: Record<string, string> }).env?.E2E === '1') ||
+    (typeof process !== 'undefined' &&
+      (process as unknown as { env?: Record<string, string> }).env?.E2E === '1');
   const initialId = query.get('id') ?? 'demo';
   const rawDir = query.get('dir') ?? 'flowspec';
   // 内部仍用绝对/原始 dir 请求后端，展示层用 displayDir 避免暴露宿主完整目录
@@ -151,6 +159,7 @@ export default function App(): React.JSX.Element {
   return (
     <ErrorBoundary>
       <div className="flex h-screen flex-col bg-panel-bg text-panel-text">
+        {showVCursor ? <VCursorOverlay /> : null}
         <AppHeader
           spec={spec}
           id={id}

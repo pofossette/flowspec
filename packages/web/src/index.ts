@@ -11,3 +11,4 @@ export { KIND_DEFAULTS, STATUS_DOT } from './nodes/FlowNodeShape.js';
 export * from './nodes/index.js';
 export * from './types.js';
 export * from './useFlowLock.js';
+export * from './components/VCursor.js';
