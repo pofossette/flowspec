@@ -54,6 +54,16 @@ pnpm lint:fix     # 自动修复 biome
 pnpm fallow       # 完整健康报告（dead + dupes + health）
 ```
 
+## E2E
+
+```bash
+pnpm test:e2e          # 全量
+pnpm test:e2e:ui        # UI 模式
+pnpm test:e2e:headed    # 观察 V-Cursor 轨迹
+```
+
+详见 `e2e/README.md`。
+
 ## 迁移说明
 
 - 零依赖 `@trapmap/*`，`server/routes` 已去 `InvocationError` 改本地 `FlowSpecError`。

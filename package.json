@@ -37,6 +37,7 @@
     "quality": "pnpm typecheck && pnpm lint && pnpm fallow || true",
     "prepare:hooks": "fallow hooks install --target git || true",
     "test:e2e": "pnpm -r build && pnpm exec playwright test",
+    "test:e2e:ci": "pnpm -r build && pnpm exec playwright test --reporter=html,list --project=chromium",
     "test:e2e:ui": "pnpm exec playwright test --ui",
     "test:e2e:debug": "pnpm exec playwright test --debug",
     "test:e2e:report": "pnpm exec playwright show-report",
