@@ -16,7 +16,12 @@ export function syncFromFilesystem(root?: string, opts: SyncOptions = {}): Regis
   const kind = rawKind === 'mark' ? 'workspace' : (rawKind as 'workspace' | 'preview' | 'full');
   const prune = opts.prune ?? true;
   ensureRegistryDir(root);
-  const file = kind === 'workspace' ? workspacePath(root) : kind === 'preview' ? previewPath(root) : fullPath(root);
+  const file =
+    kind === 'workspace'
+      ? workspacePath(root)
+      : kind === 'preview'
+        ? previewPath(root)
+        : fullPath(root);
   const reg = readRegistryFile(file);
   const files: string[] = [];
   walkFiles(path.resolve(flowspecDir), files);

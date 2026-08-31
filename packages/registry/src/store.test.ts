@@ -4,7 +4,13 @@ import * as path from 'node:path';
 import { flowSpecExample } from '@flowspec/domain';
 import { serializeFlowSpecToMarkdown } from '@flowspec/parser';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ensureRegistryDir, fullPath, previewPath, resolveRegistryDir, workspacePath } from './paths.js';
+import {
+  ensureRegistryDir,
+  fullPath,
+  previewPath,
+  resolveRegistryDir,
+  workspacePath,
+} from './paths.js';
 import {
   addEntry,
   addEntryAsync,

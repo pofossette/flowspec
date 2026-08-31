@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { vCursor, type VCursorHelper, type VCursorOptions } from '../helpers/v-cursor.js';
+import { type VCursorHelper, type VCursorOptions, vCursor } from '../helpers/v-cursor.js';
 
 export class AppPage {
   public cursor: VCursorHelper;
@@ -7,7 +7,7 @@ export class AppPage {
   constructor(
     public page: Page,
     cursor?: VCursorHelper,
-    private cursorOpts?: VCursorOptions,
+    cursorOpts?: VCursorOptions
   ) {
     this.cursor = cursor ?? vCursor(page, cursorOpts);
   }
@@ -95,7 +95,11 @@ export class AppPage {
 
   get blockEditorEditable(): Locator {
     // BlockNote's ProseMirror contenteditable inside block-editor
-    return this.page.locator('[data-testid="block-editor"] .ProseMirror, [data-testid="block-editor"] [contenteditable="true"]').first();
+    return this.page
+      .locator(
+        '[data-testid="block-editor"] .ProseMirror, [data-testid="block-editor"] [contenteditable="true"]'
+      )
+      .first();
   }
 
   async ensureEditMode(): Promise<void> {
@@ -103,7 +107,7 @@ export class AppPage {
     const editBtn = this.editToggle;
     try {
       const text = await editBtn.textContent({ timeout: 2000 });
-      if (text && text.includes('编辑') && !text.includes('预览')) {
+      if (text?.includes('编辑') && !text.includes('预览')) {
         await this.cursor.click(editBtn);
         // wait for edit banner or lock banner with owned
         await this.page.waitForTimeout(800);

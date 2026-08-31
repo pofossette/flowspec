@@ -1,18 +1,22 @@
-import { test, expect } from '../fixtures.js';
-import { waitForPreviewReady, getApiBaseUrl, getWebBaseUrl } from '../helpers/preview-server.js';
-import { vCursor } from '../helpers/v-cursor.js';
-import { AppPage } from '../page-objects/app.page.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { expect, test } from '../fixtures.js';
+import { getApiBaseUrl, getWebBaseUrl, waitForPreviewReady } from '../helpers/preview-server.js';
+import { vCursor } from '../helpers/v-cursor.js';
+import { AppPage } from '../page-objects/app.page.js';
 
 const CI = !!process.env.CI;
 
 test.describe('node-edit', () => {
-  test('should open node detail and edit via v-cursor', async ({ page, previewUrl, flowspecDir }) => {
+  test('should open node detail and edit via v-cursor', async ({
+    page,
+    previewUrl,
+    flowspecDir,
+  }) => {
     const apiBase = getApiBaseUrl();
     const baseUrl = getWebBaseUrl();
-    const url = previewUrl + '&vcursor=1';
-    const urlWithApi = url.includes('api=') ? url : url + `&api=${encodeURIComponent(apiBase)}`;
+    const url = `${previewUrl}&vcursor=1`;
+    const urlWithApi = url.includes('api=') ? url : `${url}&api=${encodeURIComponent(apiBase)}`;
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
     const app = new AppPage(page, cursor);
 
@@ -36,7 +40,7 @@ test.describe('node-edit', () => {
     // Ensure edit mode
     await expect(app.editToggle).toBeVisible({ timeout: 10_000 });
     const editText = await app.editToggle.textContent();
-    if (editText && editText.includes('编辑') && !editText.includes('预览')) {
+    if (editText?.includes('编辑') && !editText.includes('预览')) {
       await cursor.click(app.editToggle);
       await page.waitForTimeout(800);
     }
@@ -75,34 +79,47 @@ test.describe('node-edit', () => {
     await expect(titleInput).toHaveValue(newTitle, { timeout: 10_000 });
 
     // Also canvas node should show new label
-    await expect(page.locator(`text=${newTitle}`).first()).toBeVisible({ timeout: 10_000 }).catch(async () => {
-      // fallback: check nodeDetail still shows newTitle in input
-      await expect(titleInput).toHaveValue(newTitle);
-    });
+    await expect(page.locator(`text=${newTitle}`).first())
+      .toBeVisible({ timeout: 10_000 })
+      .catch(async () => {
+        // fallback: check nodeDetail still shows newTitle in input
+        await expect(titleInput).toHaveValue(newTitle);
+      });
 
     // Verify persistence via file (optional)
     try {
       const demoPath = path.join(flowspecDir, 'demo.md');
       if (fs.existsSync(demoPath)) {
-        const content = fs.readFileSync(demoPath, 'utf-8');
+        const _content = fs.readFileSync(demoPath, 'utf-8');
         // after save, file should contain newTitle (as label)
         // brief says verification after save
         // we poll for file update
-        await expect.poll(() => {
-          try {
-            const c = fs.readFileSync(demoPath, 'utf-8');
-            return c.includes(newTitle);
-          } catch { return false; }
-        }, { timeout: 10_000 }).toBeTruthy();
+        await expect
+          .poll(
+            () => {
+              try {
+                const c = fs.readFileSync(demoPath, 'utf-8');
+                return c.includes(newTitle);
+              } catch {
+                return false;
+              }
+            },
+            { timeout: 10_000 }
+          )
+          .toBeTruthy();
       }
     } catch {}
   });
 
-  test('should edit markdown via BlockNote and persist', async ({ page, previewUrl, flowspecDir }) => {
+  test('should edit markdown via BlockNote and persist', async ({
+    page,
+    previewUrl,
+    flowspecDir,
+  }) => {
     const apiBase = getApiBaseUrl();
     const baseUrl = getWebBaseUrl();
-    const url = previewUrl + '&vcursor=1';
-    const urlWithApi = url.includes('api=') ? url : url + `&api=${encodeURIComponent(apiBase)}`;
+    const url = `${previewUrl}&vcursor=1`;
+    const urlWithApi = url.includes('api=') ? url : `${url}&api=${encodeURIComponent(apiBase)}`;
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
     const app = new AppPage(page, cursor);
 
@@ -122,7 +139,7 @@ test.describe('node-edit', () => {
 
     // Ensure edit mode
     const editText = await app.editToggle.textContent();
-    if (editText && editText.includes('编辑') && !editText.includes('预览')) {
+    if (editText?.includes('编辑') && !editText.includes('预览')) {
       await cursor.click(app.editToggle);
       await page.waitForTimeout(800);
     }
@@ -130,10 +147,12 @@ test.describe('node-edit', () => {
     await expect(app.blockEditor).toBeVisible({ timeout: 10_000 });
     // BlockNote editable area
     const editable = app.blockEditorEditable;
-    await expect(editable).toBeVisible({ timeout: 10_000 }).catch(async () => {
-      // fallback: block editor itself
-      await expect(app.blockEditor).toBeVisible({ timeout: 5000 });
-    });
+    await expect(editable)
+      .toBeVisible({ timeout: 10_000 })
+      .catch(async () => {
+        // fallback: block editor itself
+        await expect(app.blockEditor).toBeVisible({ timeout: 5000 });
+      });
 
     const appendText = ` E2E appended ${Date.now().toString(36).slice(-4)}`;
     // Click editable to focus
@@ -167,12 +186,19 @@ test.describe('node-edit', () => {
     // Instead verify file persistence
     try {
       const demoPath = path.join(flowspecDir, 'demo.md');
-      await expect.poll(() => {
-        try {
-          const c = fs.readFileSync(demoPath, 'utf-8');
-          return c.includes(appendText.trim());
-        } catch { return false; }
-      }, { timeout: 10_000 }).toBeTruthy();
+      await expect
+        .poll(
+          () => {
+            try {
+              const c = fs.readFileSync(demoPath, 'utf-8');
+              return c.includes(appendText.trim());
+            } catch {
+              return false;
+            }
+          },
+          { timeout: 10_000 }
+        )
+        .toBeTruthy();
     } catch {
       // fallback: verify editor still contains appended text
       if (editorText) {

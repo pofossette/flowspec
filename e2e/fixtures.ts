@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test';
-import { prepareFlowspecDir } from './helpers/tmp-dir.js';
 import { previewUrlFor, waitForPreviewReady } from './helpers/preview-server.js';
+import { prepareFlowspecDir } from './helpers/tmp-dir.js';
 
 type Fixtures = {
   flowspecDir: string;
@@ -8,6 +8,7 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright fixture requires empty object pattern
   flowspecDir: async ({}, use) => {
     const { dir, cleanup } = await prepareFlowspecDir();
     await use(dir);

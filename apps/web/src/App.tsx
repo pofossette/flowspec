@@ -1,9 +1,9 @@
+import { VCursorOverlay } from '@flowspec/web';
 import { Card, Dropdown, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { AppHeader } from './components/AppHeader.js';
 import { FlowAside } from './components/FlowAside.js';
 import { LeftNav } from './components/LeftNav.js';
-import { VCursorOverlay } from '@flowspec/web';
 
 // 重型组件按需懒加载，减少首屏 JS
 const FlowMapCanvas = React.lazy(() =>
@@ -12,6 +12,7 @@ const FlowMapCanvas = React.lazy(() =>
 const WorkspaceModal = React.lazy(() =>
   import('./components/WorkspaceModal.js').then((m) => ({ default: m.WorkspaceModal }))
 );
+
 import { useFlowActions } from './hooks/useFlowActions.js';
 import { useFlowList } from './hooks/useFlowList.js';
 import { useFlowSync } from './hooks/useFlowSync.js';
@@ -21,7 +22,7 @@ import { cleanUrlDirParam, displayDir } from './utils/dir.js';
 
 function useQuery(): URLSearchParams {
   const [search, setSearch] = React.useState(() =>
-    typeof window !== 'undefined' ? window.location.search : '',
+    typeof window !== 'undefined' ? window.location.search : ''
   );
   React.useEffect(() => {
     const onChange = (): void => setSearch(window.location.search);
@@ -66,7 +67,7 @@ export default function App(): React.JSX.Element {
   const initialParamsRef = React.useRef<URLSearchParams | null>(null);
   if (initialParamsRef.current === null) {
     initialParamsRef.current = new URLSearchParams(
-      typeof window !== 'undefined' ? window.location.search : '',
+      typeof window !== 'undefined' ? window.location.search : ''
     );
   }
   const initialQuery = initialParamsRef.current;
@@ -84,18 +85,21 @@ export default function App(): React.JSX.Element {
     cleanUrlDirParam();
   }, []);
 
-  const { flowList, activeId, id, menuCollapsed, setMenuCollapsed, handleSwitchFlow, refresh } = useFlowList(
-    { dir, api, initialId }
-  );
+  const { flowList, activeId, id, menuCollapsed, setMenuCollapsed, handleSwitchFlow, refresh } =
+    useFlowList({ dir, api, initialId });
   const { fetchAll, wsSend } = useFlowSync({ api, apiBase, id, dir, holder });
   const [workspaceModalOpen, setWorkspaceModalOpen] = React.useState(false);
-  const [fullList, setFullList] = React.useState<Array<{ id: string; title: string; path: string; rootId: string }>>([]);
+  const [fullList, setFullList] = React.useState<
+    Array<{ id: string; title: string; path: string; rootId: string }>
+  >([]);
 
   const refreshFull = React.useCallback(async () => {
     try {
       const res = await fetch(api(`/api/flow-spec/full?dir=${encodeURIComponent(dir)}`));
       if (!res.ok) return;
-      const j = (await res.json()) as { entries?: Array<{ id: string; title: string; path: string; rootId: string }> };
+      const j = (await res.json()) as {
+        entries?: Array<{ id: string; title: string; path: string; rootId: string }>;
+      };
       if (j.entries) setFullList(j.entries);
     } catch {}
   }, [api, dir]);
@@ -132,8 +136,7 @@ export default function App(): React.JSX.Element {
     const isNotFound =
       /404|not found|flowspec ".*?" not found/i.test(error) || error.includes('spec 404');
     if (!isNotFound) return;
-    const fallback =
-      flowList[0]?.id ?? fullList[0]?.id ?? null;
+    const fallback = flowList[0]?.id ?? fullList[0]?.id ?? null;
     if (fallback && fallback !== id) {
       handleSwitchFlow(fallback);
     }
@@ -161,7 +164,9 @@ export default function App(): React.JSX.Element {
       return (
         <div className="flex h-screen items-center justify-center gap-3">
           <Spinner size="lg" />
-          <span className="text-sm text-muted">资源不存在，正重定向至 {flowList[0]?.id ?? fullList[0]?.id}…</span>
+          <span className="text-sm text-muted">
+            资源不存在，正重定向至 {flowList[0]?.id ?? fullList[0]?.id}…
+          </span>
         </div>
       );
     }
@@ -222,7 +227,9 @@ export default function App(): React.JSX.Element {
               onClose={() => setWorkspaceModalOpen(false)}
               dir={dir}
               api={api}
-              workspaceList={flowList as Array<{ id: string; title: string; path: string; rootId: string }>}
+              workspaceList={
+                flowList as Array<{ id: string; title: string; path: string; rootId: string }>
+              }
               fullList={fullList}
               onRefresh={handleWorkspaceRefresh}
             />

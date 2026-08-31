@@ -8,11 +8,16 @@ export function isAbsoluteDir(dir: string): boolean {
   if (!dir) return false;
   // POSIX absolute
   if (dir.startsWith('/')) return true;
-  // Windows absolute C:\ or \\ 
+  // Windows absolute C:\ or \\
   if (/^[a-zA-Z]:[\\/]/.test(dir)) return true;
   if (dir.startsWith('\\\\')) return true;
   // 包含宿主典型路径特征（如 /home/ /Users/ /var/）且较长，视为绝对
-  if (dir.includes('/') && dir.split('/').length > 3 && (dir.includes('/home/') || dir.includes('/Users/') || dir.includes('/var/'))) return true;
+  if (
+    dir.includes('/') &&
+    dir.split('/').length > 3 &&
+    (dir.includes('/home/') || dir.includes('/Users/') || dir.includes('/var/'))
+  )
+    return true;
   return false;
 }
 

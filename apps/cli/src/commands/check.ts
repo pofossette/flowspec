@@ -35,8 +35,7 @@ function validateBlocksSyntax(raw: string, fileLabel: string): string[] {
     const line = lines[i] ?? '';
     const trimmed = line.trim();
     const isStart =
-      trimmed.startsWith('^^^block') ||
-      /^\^\^\^(?:block-)?(?:node|edge):/.test(trimmed);
+      trimmed.startsWith('^^^block') || /^\^\^\^(?:block-)?(?:node|edge):/.test(trimmed);
     const isEnd = trimmed === '^^^';
     if (!inBlock && isStart) {
       inBlock = true;
@@ -56,8 +55,29 @@ function validateBlocksSyntax(raw: string, fileLabel: string): string[] {
           if (!metadata || !id || !kind) {
             errors.push(`${fileLabel}:${blockStart}: key missing metadata/id/type`);
           }
-          const validNodeKinds = ['root', 'branch', 'leaf', 'task', 'decision', 'note', 'goal', 'milestone', 'risk', 'insight', 'question'];
-          const validEdgeKinds = ['hierarchical', 'dependency', 'reference', 'causal', 'sequence', 'async', 'feedback', 'blocked'];
+          const validNodeKinds = [
+            'root',
+            'branch',
+            'leaf',
+            'task',
+            'decision',
+            'note',
+            'goal',
+            'milestone',
+            'risk',
+            'insight',
+            'question',
+          ];
+          const validEdgeKinds = [
+            'hierarchical',
+            'dependency',
+            'reference',
+            'causal',
+            'sequence',
+            'async',
+            'feedback',
+            'blocked',
+          ];
           const allKinds = [...validNodeKinds, ...validEdgeKinds];
           if (!allKinds.includes(kind!)) {
             errors.push(`${fileLabel}:${blockStart}: unknown kind "${kind}"`);
@@ -83,7 +103,6 @@ function validateBlocksSyntax(raw: string, fileLabel: string): string[] {
       inBlock = false;
       blockStart = -1;
       blockHeader = '';
-      continue;
     }
   }
   if (inBlock) {
@@ -125,7 +144,9 @@ function validateSpecContent(
 
   // 3) parser + schema
   if (!isMarkdownFlowSpec(raw)) {
-    errors.push(`${fileLabel}: not a flowspec markdown (no ^^^node/^ ^edge/^ ^block or <flow-spec>)`);
+    errors.push(
+      `${fileLabel}: not a flowspec markdown (no ^^^node/^ ^edge/^ ^block or <flow-spec>)`
+    );
     return { errors, warnings, info };
   }
   const parsed = parseFlowSpecFromMarkdown(raw);
@@ -153,12 +174,15 @@ function validateSpecContent(
   // 4) unwrapped content info (not rendered)
   const body = extractBodyMarkdown(raw);
   if (body.trim()) {
-    info.push(`${fileLabel}: body has ${body.split('\n').length} lines of unwrapped markdown (not rendered in canvas, only blocks are)`);
+    info.push(
+      `${fileLabel}: body has ${body.split('\n').length} lines of unwrapped markdown (not rendered in canvas, only blocks are)`
+    );
   }
   // also detect blocks without content
   const { nodes, edges } = parseBlocks(raw);
   for (const n of nodes) if (!n.content) info.push(`${fileLabel}: node ${n.id} has no content`);
-  for (const e of edges) if (!e.content && !e.label) info.push(`${fileLabel}: edge ${e.id} has no label/content`);
+  for (const e of edges)
+    if (!e.content && !e.label) info.push(`${fileLabel}: edge ${e.id} has no label/content`);
 
   return { errors, warnings, info };
 }
@@ -200,7 +224,13 @@ export function handleCheckFlowSpec(
       if (!entry) continue;
       const abs = path.resolve(root, entry.path);
       if (!fs.existsSync(abs)) {
-        results.push({ ok: false, idOrPath: id, errors: [`${entry.path}: file not found`], warnings: [], info: [] });
+        results.push({
+          ok: false,
+          idOrPath: id,
+          errors: [`${entry.path}: file not found`],
+          warnings: [],
+          info: [],
+        });
         continue;
       }
       const raw = fs.readFileSync(abs, 'utf-8');
@@ -219,7 +249,9 @@ export function handleCheckFlowSpec(
     target.endsWith('.json');
   const candidateRoots = [cwd, repoRoot, root].filter((v, i, a) => a.indexOf(v) === i);
   if (looksLikePath) {
-    abs = tryResolveFile(target, candidateRoots) ?? tryResolveFile(target, [path.join(repoRoot, 'flowspec')]);
+    abs =
+      tryResolveFile(target, candidateRoots) ??
+      tryResolveFile(target, [path.join(repoRoot, 'flowspec')]);
     if (abs) label = toRepoRelative(abs, repoRoot);
   } else {
     const workspace = loadWorkspace(root);
@@ -245,7 +277,9 @@ export function handleCheckFlowSpec(
     }
   }
   if (!abs || !fs.existsSync(abs))
-    return [{ ok: false, idOrPath: label, errors: [`${label}: file not found`], warnings: [], info: [] }];
+    return [
+      { ok: false, idOrPath: label, errors: [`${label}: file not found`], warnings: [], info: [] },
+    ];
   const raw = fs.readFileSync(abs, 'utf-8');
   const { errors, warnings, info } = validateSpecContent(raw, label);
   return [{ ok: errors.length === 0, idOrPath: label, errors, warnings, info }];

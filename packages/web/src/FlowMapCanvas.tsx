@@ -19,7 +19,11 @@ function FallbackCanvas(
 ): React.JSX.Element {
   const { spec, mode = 'edit', className, allowManualAdd = true, rf, readOnly, lockHolder } = props;
   return (
-    <div data-testid="flow-canvas-fallback" className={className} style={{ padding: 16, border: '1px dashed #888', borderRadius: 8 }}>
+    <div
+      data-testid="flow-canvas-fallback"
+      className={className}
+      style={{ padding: 16, border: '1px dashed #888', borderRadius: 8 }}
+    >
       {readOnly ? (
         <div
           data-testid="lock-banner-canvas"
@@ -35,7 +39,9 @@ function FallbackCanvas(
           操作中已锁定，仅允许预览{lockHolder ? ` · ${lockHolder}` : ''} — 预览模式
         </div>
       ) : null}
-      <div data-testid="flow-title" style={{ fontWeight: 700, marginBottom: 8 }}>{spec.title}</div>
+      <div data-testid="flow-title" style={{ fontWeight: 700, marginBottom: 8 }}>
+        {spec.title}
+      </div>
       <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 12 }}>{spec.description}</div>
       <pre
         style={{

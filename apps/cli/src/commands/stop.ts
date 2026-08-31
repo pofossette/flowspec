@@ -45,7 +45,14 @@ export function registerStopCommand(flow: Command): void {
         fs.unlinkSync(pidPathEffective);
         console.log(
           JSON.stringify(
-            { ok: true, stopped: false, reason: 'stale pid, cleaned', pid, pidPath: pidPathEffective, prevInfo },
+            {
+              ok: true,
+              stopped: false,
+              reason: 'stale pid, cleaned',
+              pid,
+              pidPath: pidPathEffective,
+              prevInfo,
+            },
             null,
             2
           )

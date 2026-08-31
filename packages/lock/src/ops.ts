@@ -5,7 +5,6 @@ import { atomicWriteFileSync } from './helpers.js';
 import {
   ensureFlowspecDir,
   ensureHiddenDir,
-  resolveHiddenDir,
   resolveLegacyLockPath,
   resolveLockPath,
   resolveSpecPath,
@@ -52,7 +51,11 @@ function autoClearExpiredLock(id: string, flowspecDir: string, hiddenDir?: strin
 }
 
 /** 迁移：若旧路径存在锁，读取并迁移至新隐藏目录（幂等） */
-function migrateLegacyLockIfNeeded(id: string, flowspecDir: string, hiddenDir?: string): LockInfo | null {
+function migrateLegacyLockIfNeeded(
+  id: string,
+  flowspecDir: string,
+  hiddenDir?: string
+): LockInfo | null {
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
   const newPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   if (!fs.existsSync(legacyPath)) return null;
@@ -90,7 +93,11 @@ function migrateLegacyLockIfNeeded(id: string, flowspecDir: string, hiddenDir?: 
 }
 
 /** 读取隐藏目录锁（.flowspec/locks/<id>.lock），兼容旧路径迁移 */
-export function readLock(id: string, flowspecDir = DEFAULT_DIR, hiddenDir?: string): LockInfo | null {
+export function readLock(
+  id: string,
+  flowspecDir = DEFAULT_DIR,
+  hiddenDir?: string
+): LockInfo | null {
   migrateLegacyLockIfNeeded(id, flowspecDir, hiddenDir);
   const lockPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
@@ -151,7 +158,11 @@ export function readLock(id: string, flowspecDir = DEFAULT_DIR, hiddenDir?: stri
   return null;
 }
 
-export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR, hiddenDir?: string): LockStatus {
+export function getLockStatus(
+  id: string,
+  flowspecDir = DEFAULT_DIR,
+  hiddenDir?: string
+): LockStatus {
   // 隐藏目录锁为权威来源；frontmatter 锁仅作兼容，检测到即告警并以 hidden 为准
   const specPath = resolveSpecPath(id, flowspecDir);
   // 迁移检查

@@ -2,7 +2,13 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { flowSpecSchema } from '@flowspec/domain';
 import { parseFlowSpecFromMarkdown } from '@flowspec/parser';
-import { addEntry, ensureRegistryDir, findRepoRoot, loadFull, loadPreview, loadWorkspace } from '@flowspec/registry';
+import {
+  addEntry,
+  ensureRegistryDir,
+  findRepoRoot,
+  loadPreview,
+  loadWorkspace,
+} from '@flowspec/registry';
 import type { Command } from 'commander';
 import { deriveIdFromPath, toRepoRelative } from './shared.js';
 

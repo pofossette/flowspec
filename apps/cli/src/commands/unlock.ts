@@ -4,7 +4,9 @@ import type { Command } from 'commander';
 export function registerUnlockCommand(flow: Command): void {
   flow
     .command('unlock')
-    .description('Force release lock for a flowspec (emergency unlock; auto-clears 30min stale locks)')
+    .description(
+      'Force release lock for a flowspec (emergency unlock; auto-clears 30min stale locks)'
+    )
     .argument('<id>', 'flowspec id')
     .option('--holder <holder>', 'Lock holder to match (omit to force)')
     .option('--force', 'Force release regardless of holder', true)
@@ -17,7 +19,13 @@ export function registerUnlockCommand(flow: Command): void {
           const lockPath = resolveLockPath(id, opts.dir);
           console.log(
             JSON.stringify(
-              { ok: true, locked: false, id, lockPath, note: 'already unlocked (or auto-expired >30min)' },
+              {
+                ok: true,
+                locked: false,
+                id,
+                lockPath,
+                note: 'already unlocked (or auto-expired >30min)',
+              },
               null,
               2
             )

@@ -12,7 +12,8 @@ function formatLockTime(acquiredAt: string | undefined): string {
   const mins = Math.max(0, Math.floor(diff / 60000));
   const remain = Math.max(0, 30 - mins);
   const timeStr = d.toLocaleString();
-  if (mins < 60) return `${timeStr} · 已持有 ${mins} 分钟${remain > 0 ? ` · ${remain} 分钟后自动过期` : ' · 即将过期'}`;
+  if (mins < 60)
+    return `${timeStr} · 已持有 ${mins} 分钟${remain > 0 ? ` · ${remain} 分钟后自动过期` : ' · 即将过期'}`;
   const hours = Math.floor(mins / 60);
   return `${timeStr} · 已持有 ${hours} 小时 ${mins % 60} 分钟 · 已过期将自动解锁`;
 }
@@ -66,13 +67,18 @@ export function AppHeader(props: {
   const lockTimeText = locked ? formatLockTime(lockAcquiredAt) : '';
   return (
     <>
-      <header data-testid="app-header" className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-panel-line bg-panel-surface px-4 py-3">
+      <header
+        data-testid="app-header"
+        className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-panel-line bg-panel-surface px-4 py-3"
+      >
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white font-bold text-sm">
             ⟁
           </div>
           <div>
-            <div data-testid="flow-title" className="font-semibold leading-none">{spec.title}</div>
+            <div data-testid="flow-title" className="font-semibold leading-none">
+              {spec.title}
+            </div>
             <div className="text-xs text-default-500">
               {id} · {dir} · {spec.nodes.length} 节点 · {spec.edges.length} 边
               {lockTimeText ? ` · 🔒 ${lockTimeText}` : ''}
@@ -184,17 +190,23 @@ export function AppHeader(props: {
               <Modal.Body className="text-sm leading-6 text-default-600">
                 <div>
                   当前流程 <b className="text-foreground">{id}</b> 正被{' '}
-                  <code className="rounded bg-default-100 px-1.5 py-0.5 text-xs">{lockHolder ?? '未知'}</code>{' '}
+                  <code className="rounded bg-default-100 px-1.5 py-0.5 text-xs">
+                    {lockHolder ?? '未知'}
+                  </code>{' '}
                   锁定。
                 </div>
                 {lockAcquiredAt ? (
-                  <div className="mt-1 text-xs text-default-500">加锁时间：{new Date(lockAcquiredAt).toLocaleString()}</div>
+                  <div className="mt-1 text-xs text-default-500">
+                    加锁时间：{new Date(lockAcquiredAt).toLocaleString()}
+                  </div>
                 ) : null}
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-800">
                   解锁后他人可立即编辑，未保存的改动可能丢失。若对方异常退出导致持续拿锁，建议强制解锁；
                   超过 30 分钟的锁下次访问会自动过期。
                 </div>
-                <div className="mt-2 text-xs text-muted">此操作等同于 CLI：<code>flowspec unlock {id}</code></div>
+                <div className="mt-2 text-xs text-muted">
+                  此操作等同于 CLI：<code>flowspec unlock {id}</code>
+                </div>
               </Modal.Body>
               <Modal.Footer className="justify-end gap-2">
                 <Button size="sm" variant="tertiary" onPress={() => setUnlockOpen(false)}>

@@ -7,14 +7,20 @@
  * This replaces previous hash-prefix/substring heuristics. We import the real helper from @flowspec/lock
  * instead of duplicating logic (fixes review #5).
  */
-import { test, expect } from '../fixtures.js';
-import { previewUrlFor, waitForPreviewReady, getApiBaseUrl, getWebBaseUrl } from '../helpers/preview-server.js';
-import { vCursor } from '../helpers/v-cursor.js';
-import { writeFlowspecFile } from '../helpers/flow-utils.js';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+
 import * as crypto from 'node:crypto';
+import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
+import * as path from 'node:path';
+import { expect, test } from '../fixtures.js';
+import { writeFlowspecFile } from '../helpers/flow-utils.js';
+import {
+  getApiBaseUrl,
+  getWebBaseUrl,
+  previewUrlFor,
+  waitForPreviewReady,
+} from '../helpers/preview-server.js';
+import { vCursor } from '../helpers/v-cursor.js';
 
 const CI = !!process.env.CI;
 
@@ -23,7 +29,9 @@ let _resolveLockPath: ((id: string, dir: string, opts?: unknown) => string) | nu
 try {
   const require = createRequire(import.meta.url);
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- runtime import of built helper for isolation (fixes review #1,5)
-  const mod = require('../../packages/lock/dist/paths.js') as { resolveLockPath?: typeof _resolveLockPath };
+  const mod = require('../../packages/lock/dist/paths.js') as {
+    resolveLockPath?: typeof _resolveLockPath;
+  };
   if (mod.resolveLockPath) _resolveLockPath = mod.resolveLockPath;
 } catch {}
 function resolveFallbackLockPath(flowspecDir: string, id: string): string {
@@ -35,16 +43,24 @@ function resolveFallbackLockPath(flowspecDir: string, id: string): string {
 }
 
 // Helper to create lock file via direct fs (hidden dir) or via API — uses real helper, no duplication
-async function createLockViaApi(flowspecDir: string, id: string, holder: string, note = 'e2e lock'): Promise<void> {
+async function createLockViaApi(
+  flowspecDir: string,
+  id: string,
+  holder: string,
+  note = 'e2e lock'
+): Promise<void> {
   const apiBases = [getApiBaseUrl(), 'http://127.0.0.1:5176', 'http://127.0.0.1:5174'];
   const uniqBases = [...new Set(apiBases)];
   for (const base of uniqBases) {
     try {
-      const res = await fetch(`${base}/api/flow-spec/${encodeURIComponent(id)}/lock?dir=${encodeURIComponent(flowspecDir)}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ holder, note }),
-      });
+      const res = await fetch(
+        `${base}/api/flow-spec/${encodeURIComponent(id)}/lock?dir=${encodeURIComponent(flowspecDir)}`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ holder, note }),
+        }
+      );
       if (res.ok) return;
     } catch {}
   }
@@ -126,7 +142,7 @@ rootId: root-1
 
     const baseUrl = getWebBaseUrl();
     const apiBase = getApiBaseUrl();
-    const url = previewUrlFor(flowspecDir, id, 'e2e-test', baseUrl) + `&api=${encodeURIComponent(apiBase)}&vcursor=1`;
+    const url = `${previewUrlFor(flowspecDir, id, 'e2e-test', baseUrl)}&api=${encodeURIComponent(apiBase)}&vcursor=1`;
 
     await page.goto(url);
     await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch((e) => {
@@ -140,17 +156,21 @@ rootId: root-1
 
     // Also check FlowMapCanvas readOnly banner (now lock-banner-canvas, not lock-banner)
     const canvasLock = page.getByTestId('lock-banner-canvas');
-    await expect(canvasLock.first()).toBeVisible({ timeout: 10_000 }).catch(() => {
-      // fallback to text search if canvas fallback is rendered
-      return expect(page.locator('text=操作中已锁定').first()).toBeVisible({ timeout: 5000 });
-    });
+    await expect(canvasLock.first())
+      .toBeVisible({ timeout: 10_000 })
+      .catch(() => {
+        // fallback to text search if canvas fallback is rendered
+        return expect(page.locator('text=操作中已锁定').first()).toBeVisible({ timeout: 5000 });
+      });
 
     // Edit toggle should be disabled when locked by other and not in edit mode
     const editToggle = page.getByTestId('edit-toggle');
     await expect(editToggle).toBeVisible({ timeout: 5000 });
-    await expect(editToggle).toBeDisabled({ timeout: 5000 }).catch(() => {
-      // if not disabled, at least check that clicking shows message about locked
-    });
+    await expect(editToggle)
+      .toBeDisabled({ timeout: 5000 })
+      .catch(() => {
+        // if not disabled, at least check that clicking shows message about locked
+      });
 
     // frontmatter legacy note: hidden lock is authoritative; file frontmatter should not contain locked:true
     // verify legacy cleanup — file should not have locked:true after hidden lock acquired (server clears)
@@ -190,7 +210,7 @@ rootId: root-1
 
     const baseUrl = getWebBaseUrl();
     const apiBase = getApiBaseUrl();
-    const url = previewUrlFor(flowspecDir, id, holderOwned, baseUrl) + `&api=${encodeURIComponent(apiBase)}&vcursor=1`;
+    const url = `${previewUrlFor(flowspecDir, id, holderOwned, baseUrl)}&api=${encodeURIComponent(apiBase)}&vcursor=1`;
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
 
     await page.goto(url);
@@ -209,7 +229,7 @@ rootId: root-1
 
     // Try to click edit to ensure edit mode (if not already)
     const editText = await editToggle.textContent();
-    if (editText && editText.includes('编辑') && !editText.includes('预览')) {
+    if (editText?.includes('编辑') && !editText.includes('预览')) {
       await cursor.click(editToggle);
       await page.waitForTimeout(800);
     }

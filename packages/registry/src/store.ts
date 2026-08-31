@@ -258,7 +258,11 @@ export function isRegistered(
   if (kind === 'workspace' || kind === 'mark') return id in loadWorkspace(root).entries;
   if (kind === 'preview') return id in loadPreview(root).entries;
   if (kind === 'full') return id in loadFull(root).entries;
-  return id in loadWorkspace(root).entries || id in loadPreview(root).entries || id in loadFull(root).entries;
+  return (
+    id in loadWorkspace(root).entries ||
+    id in loadPreview(root).entries ||
+    id in loadFull(root).entries
+  );
 }
 export async function addEntryAsync(
   kind: RegistryKind,
@@ -267,7 +271,8 @@ export async function addEntryAsync(
   root?: string
 ): Promise<Registry> {
   const k = normalizeKind(kind);
-  const file = k === 'workspace' ? workspacePath(root) : k === 'preview' ? previewPath(root) : fullPath(root);
+  const file =
+    k === 'workspace' ? workspacePath(root) : k === 'preview' ? previewPath(root) : fullPath(root);
   let result!: Registry;
   await enqueueWriteAsync(file, () => {
     const current = readRegistryFile(file);

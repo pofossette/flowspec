@@ -58,7 +58,11 @@ export function WorkspaceModal(props: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
       <div className="relative flex max-h-[80vh] w-[860px] max-w-[95vw] flex-col rounded-2xl border border-default-200 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
         <div className="flex items-center justify-between border-b border-default-200 px-5 py-4">
           <div>
@@ -72,7 +76,10 @@ export function WorkspaceModal(props: {
         <div className="grid flex-1 min-h-0 grid-cols-2 gap-0 overflow-hidden">
           <div className="flex min-h-0 flex-col border-r border-default-200">
             <div className="flex items-center gap-2 border-b border-default-200 bg-default-50 px-4 py-2 text-xs font-semibold">
-              工作区 <Chip size="sm" variant="soft">{workspaceList.length}</Chip>
+              工作区{' '}
+              <Chip size="sm" variant="soft">
+                {workspaceList.length}
+              </Chip>
             </div>
             <div className="flex-1 overflow-auto p-2 space-y-1.5">
               {workspaceList.length === 0 ? (
@@ -85,7 +92,9 @@ export function WorkspaceModal(props: {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{e.title}</div>
-                      <div className="truncate text-[11px] opacity-60">{e.id} · {e.path}</div>
+                      <div className="truncate text-[11px] opacity-60">
+                        {e.id} · {e.path}
+                      </div>
                     </div>
                     <Button
                       size="sm"
@@ -103,7 +112,10 @@ export function WorkspaceModal(props: {
           </div>
           <div className="flex min-h-0 flex-col">
             <div className="flex items-center gap-2 border-b border-default-200 bg-default-50 px-4 py-2 text-xs font-semibold">
-              全部（未入选） <Chip size="sm" variant="soft">{outside.length}</Chip>
+              全部（未入选）{' '}
+              <Chip size="sm" variant="soft">
+                {outside.length}
+              </Chip>
             </div>
             <div className="flex-1 overflow-auto p-2 space-y-1.5">
               {outside.length === 0 ? (
@@ -116,7 +128,9 @@ export function WorkspaceModal(props: {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{e.title}</div>
-                      <div className="truncate text-[11px] opacity-60">{e.id} · {e.path}</div>
+                      <div className="truncate text-[11px] opacity-60">
+                        {e.id} · {e.path}
+                      </div>
                     </div>
                     <Button
                       size="sm"
@@ -134,7 +148,8 @@ export function WorkspaceModal(props: {
           </div>
         </div>
         <div className="border-t border-default-200 px-4 py-2 text-[11px] text-default-500">
-          点击移入/移出将更新 <code>.flowspec/workspace.json</code>，不删除文件；<code>full.json</code> 为全量扫描
+          点击移入/移出将更新 <code>.flowspec/workspace.json</code>，不删除文件；
+          <code>full.json</code> 为全量扫描
         </div>
       </div>
     </div>

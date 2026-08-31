@@ -20,7 +20,12 @@ export interface RemoveFlowOptions {
 export function handleRemoveFlowSpec(
   id: string,
   opts: RemoveFlowOptions = {}
-): { removedWorkspace: boolean; removedMark: boolean; removedPreview: boolean; removedFull: boolean } {
+): {
+  removedWorkspace: boolean;
+  removedMark: boolean;
+  removedPreview: boolean;
+  removedFull: boolean;
+} {
   const root = opts.root ? path.resolve(opts.root) : findRepoRoot(process.cwd());
   ensureRegistryDir(root);
   if (!id?.trim()) throw new Error('Missing <id> for remove');
@@ -29,7 +34,10 @@ export function handleRemoveFlowSpec(
   const previewBefore = loadPreview(root);
   const fullBefore = loadFull(root);
   const entry =
-    workspaceBefore.entries[cleanId] ?? previewBefore.entries[cleanId] ?? fullBefore.entries[cleanId] ?? null;
+    workspaceBefore.entries[cleanId] ??
+    previewBefore.entries[cleanId] ??
+    fullBefore.entries[cleanId] ??
+    null;
   const filePathForBlocks = entry ? path.resolve(root, entry.path) : null;
   const removedWorkspace = removeEntry('workspace', cleanId, root);
   const removedPreview = removeEntry('preview', cleanId, root);
@@ -38,7 +46,7 @@ export function handleRemoveFlowSpec(
   if (!removedWorkspace && !removedPreview && !removedFull)
     throw new Error(`id not found in registry: ${cleanId}`);
   // 兼容返回字段：同时提供 removedMark 别名
-  const anyRemoved = removedWorkspace || removedPreview || removedFull;
+  const _anyRemoved = removedWorkspace || removedPreview || removedFull;
   if (opts.deleteBlocks && filePathForBlocks && fs.existsSync(filePathForBlocks)) {
     const raw = fs.readFileSync(filePathForBlocks, 'utf-8');
     const origLock = readLockFromMarkdown(raw);
@@ -72,7 +80,12 @@ export function handleRemoveFlowSpec(
     removedPreview,
     removedFull,
     removedMark: removedWorkspace,
-  } as { removedWorkspace: boolean; removedPreview: boolean; removedFull: boolean; removedMark: boolean };
+  } as {
+    removedWorkspace: boolean;
+    removedPreview: boolean;
+    removedFull: boolean;
+    removedMark: boolean;
+  };
 }
 
 export function registerRemoveCommand(flow: Command): void {

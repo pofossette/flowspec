@@ -155,16 +155,31 @@ export function handleMoveFlowSpec(
       try {
         const title = (validated as Extract<typeof validated, { success: true }>).data.title;
         const rootId = (validated as Extract<typeof validated, { success: true }>).data.rootId;
-        addEntry('full', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+        addEntry(
+          'full',
+          destId,
+          { path: relDest, title, rootId, addedAt: now, updatedAt: now },
+          root
+        );
       } catch {}
     }
   } else {
     const now = new Date().toISOString();
     const title = (validated as Extract<typeof validated, { success: true }>).data.title;
     const rootId = (validated as Extract<typeof validated, { success: true }>).data.rootId;
-    addEntry('workspace', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+    addEntry(
+      'workspace',
+      destId,
+      { path: relDest, title, rootId, addedAt: now, updatedAt: now },
+      root
+    );
     try {
-      addEntry('full', destId, { path: relDest, title, rootId, addedAt: now, updatedAt: now }, root);
+      addEntry(
+        'full',
+        destId,
+        { path: relDest, title, rootId, addedAt: now, updatedAt: now },
+        root
+      );
     } catch {}
   }
   return { srcId: srcId ?? deriveIdFromPath(src), destId, srcPath: relSrc, destPath: relDest };

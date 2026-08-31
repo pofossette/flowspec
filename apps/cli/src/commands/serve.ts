@@ -5,8 +5,13 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findRepoRoot } from '@flowspec/registry';
 import type { Command } from 'commander';
-import { isAlive, pidFilePath, readPidFile, writePidFile } from './shared.js';
-import { syncFromFilesystemSafe } from './shared.js';
+import {
+  isAlive,
+  pidFilePath,
+  readPidFile,
+  syncFromFilesystemSafe,
+  writePidFile,
+} from './shared.js';
 
 export function registerServeCommand(flow: Command): void {
   flow
@@ -41,7 +46,12 @@ export function registerServeCommand(flow: Command): void {
           if (pid && Number.isFinite(pid) && isAlive(pid)) {
             console.error(
               JSON.stringify(
-                { ok: false, error: `already running pid ${pid}`, pidPath, info: parsed?.info ?? null },
+                {
+                  ok: false,
+                  error: `already running pid ${pid}`,
+                  pidPath,
+                  info: parsed?.info ?? null,
+                },
                 null,
                 2
               )
@@ -142,7 +152,8 @@ export function registerServeCommand(flow: Command): void {
           console.log(
             `flowspec serve started pid ${child.pid} at ${displayUrl} (logs hidden, use --debug to show)`
           );
-        else console.log(`flowspec serve (debug) pid ${child.pid} at ${url} (display ${displayUrl})`);
+        else
+          console.log(`flowspec serve (debug) pid ${child.pid} at ${url} (display ${displayUrl})`);
       } else {
         console.error(JSON.stringify({ ok: false, error: 'failed to spawn daemon' }, null, 2));
         process.exitCode = 1;

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const WEB_PORT = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 5174);
 const API_PORT = Number(process.env.PLAYWRIGHT_API_PORT ?? 5176);
 const WEB_BASE = `http://127.0.0.1:${WEB_PORT}`;
-const API_BASE = `http://127.0.0.1:${API_PORT}`;
+const _API_BASE = `http://127.0.0.1:${API_PORT}`;
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,10 +15,7 @@ export default defineConfig({
   fullyParallel: true,
   workers: process.env.CI ? 2 : 4,
   retries: process.env.CI ? 2 : 0,
-  reporter: [
-    ['html', { open: 'never' }],
-    ['list'],
-  ],
+  reporter: [['html', { open: 'never' }], ['list']],
   use: {
     baseURL: WEB_BASE,
     trace: 'on-first-retry',

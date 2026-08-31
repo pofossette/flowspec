@@ -30,7 +30,7 @@ title: Demo
 export async function writeFlowspecFile(
   dir: string,
   name: string,
-  content: string,
+  content: string
 ): Promise<string> {
   const fileName = name.endsWith('.md') ? name : `${name}.md`;
   const filePath = path.join(dir, fileName);

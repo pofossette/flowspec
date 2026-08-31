@@ -137,11 +137,19 @@ export function VCursorOverlay(): React.JSX.Element | null {
 
   React.useEffect(() => {
     if (typeof window === 'undefined') return;
-    const w = window as unknown as { __VCURSOR__?: VCursorGlobal & { __listeners?: Set<(s: VCursorState) => void> } };
+    const w = window as unknown as {
+      __VCURSOR__?: VCursorGlobal & { __listeners?: Set<(s: VCursorState) => void> };
+    };
 
     // Ensure global exists if helper hasn't injected yet
     if (!w.__VCURSOR__) {
-      let current: VCursorState = { x: -100, y: -100, active: false, label: undefined, visible: true };
+      let current: VCursorState = {
+        x: -100,
+        y: -100,
+        active: false,
+        label: undefined,
+        visible: true,
+      };
       const listeners = new Set<(s: VCursorState) => void>();
       const g = {
         get x() {
@@ -193,7 +201,8 @@ export function VCursorOverlay(): React.JSX.Element | null {
     }
 
     const g = w.__VCURSOR__!;
-    const listeners = (g as unknown as { __listeners?: Set<(s: VCursorState) => void> }).__listeners;
+    const listeners = (g as unknown as { __listeners?: Set<(s: VCursorState) => void> })
+      .__listeners;
 
     const onUpdate = (e: Event): void => {
       const detail = (e as CustomEvent<Partial<VCursorState>>).detail;
@@ -233,7 +242,15 @@ export function VCursorOverlay(): React.JSX.Element | null {
     };
   }, []);
 
-  return <VCursor x={state.x} y={state.y} active={state.active} label={state.label} visible={state.visible} />;
+  return (
+    <VCursor
+      x={state.x}
+      y={state.y}
+      active={state.active}
+      label={state.label}
+      visible={state.visible}
+    />
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -247,11 +264,7 @@ type VCursorContextValue = {
 
 const VCursorContext = React.createContext<VCursorContextValue | null>(null);
 
-export function VCursorProvider({
-  children,
-}: {
-  children?: React.ReactNode;
-}): React.JSX.Element {
+export function VCursorProvider({ children }: { children?: React.ReactNode }): React.JSX.Element {
   const [state, setStateRaw] = React.useState<VCursorState>({
     x: -100,
     y: -100,
@@ -308,11 +321,17 @@ export function VCursorProvider({
     w.__VCURSOR__!.label = state.label;
     w.__VCURSOR__!.visible = state.visible;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only, state is initial
-  }, []);
+  }, [state.x, state]);
 
   return (
     <VCursorContext.Provider value={{ state, setState }}>
-      <VCursor x={state.x} y={state.y} active={state.active} label={state.label} visible={state.visible} />
+      <VCursor
+        x={state.x}
+        y={state.y}
+        active={state.active}
+        label={state.label}
+        visible={state.visible}
+      />
       {children}
     </VCursorContext.Provider>
   );

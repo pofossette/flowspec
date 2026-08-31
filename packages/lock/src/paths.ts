@@ -56,7 +56,7 @@ function findRepoRoot(start: string): string {
 /** 隐藏目录 .flowspec（与 flowspec 文档同级的隐藏目录，自动 gitignore） */
 export function resolveHiddenDir(
   flowspecDir = DEFAULT_DIR,
-  opts?: { hiddenDir?: string } | string,
+  opts?: { hiddenDir?: string } | string
 ): string {
   const explicitHidden = typeof opts === 'string' ? opts : opts?.hiddenDir;
   if (explicitHidden) return path.resolve(explicitHidden);
@@ -80,9 +80,12 @@ export function resolveHiddenDir(
 export function resolveLockPath(
   id: string,
   flowspecDir = DEFAULT_DIR,
-  opts?: { hiddenDir?: string } | string,
+  opts?: { hiddenDir?: string } | string
 ): string {
-  const hiddenDir = resolveHiddenDir(flowspecDir, opts as unknown as string | { hiddenDir?: string });
+  const hiddenDir = resolveHiddenDir(
+    flowspecDir,
+    opts as unknown as string | { hiddenDir?: string }
+  );
   const locksDir = path.join(hiddenDir, 'locks');
   const safeId = id.replace(/[\\/]/g, '__').replace(/\.md$|\.json$/g, '');
   return path.join(locksDir, `${safeId}.lock`);
@@ -100,7 +103,7 @@ export function ensureFlowspecDir(flowspecDir = DEFAULT_DIR): void {
 
 export function ensureHiddenDir(
   flowspecDir = DEFAULT_DIR,
-  opts?: { hiddenDir?: string } | string,
+  opts?: { hiddenDir?: string } | string
 ): string {
   const dir = resolveHiddenDir(flowspecDir, opts as unknown as string | { hiddenDir?: string });
   fs.mkdirSync(dir, { recursive: true });

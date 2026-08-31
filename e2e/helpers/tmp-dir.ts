@@ -1,6 +1,6 @@
+import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as crypto from 'node:crypto';
 
 /**
  * Prepare an isolated flowspec directory for a single test/worker.
@@ -10,7 +10,7 @@ import * as crypto from 'node:crypto';
  * then returns the directory and a cleanup callback.
  */
 export async function prepareFlowspecDir(
-  prefix = 'e2e',
+  prefix = 'e2e'
 ): Promise<{ dir: string; hiddenDir: string; cleanup: () => Promise<void> }> {
   const projectRoot = process.cwd();
   const baseTmp = path.join(projectRoot, 'e2e', '.tmp-flowspec');

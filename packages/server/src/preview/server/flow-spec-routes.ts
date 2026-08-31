@@ -28,7 +28,10 @@ import {
   toApiError,
 } from './helpers.js';
 
-function getHiddenDirParam(req: { query?: Record<string, string | undefined>; headers?: Record<string, string | string[] | undefined> }): string | undefined {
+function getHiddenDirParam(req: {
+  query?: Record<string, string | undefined>;
+  headers?: Record<string, string | string[] | undefined>;
+}): string | undefined {
   const q = req.query as Record<string, string | undefined> | undefined;
   const fromQuery = q?.hiddenDir ?? q?.hidden_dir;
   if (fromQuery) return fromQuery;
@@ -128,11 +131,14 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
   app.post('/api/workspace/add', async (req, reply) => {
     const body = req.body as { id?: string; dir?: string } | undefined;
     const dirParam = resolveFlowspecDir(
-      (body?.dir as string | undefined) ?? (req.query as Record<string, string> | undefined)?.dir as string | undefined,
+      (body?.dir as string | undefined) ??
+        ((req.query as Record<string, string> | undefined)?.dir as string | undefined),
       flowspecDir
     );
     const dir = path.resolve(dirParam);
-    const id = (body?.id as string | undefined)?.trim() ?? (req.query as Record<string, string> | undefined)?.id?.trim();
+    const id =
+      (body?.id as string | undefined)?.trim() ??
+      (req.query as Record<string, string> | undefined)?.id?.trim();
     if (!id) return reply.code(400).send({ ok: false, error: 'missing id' });
     try {
       const { loadFull, loadWorkspace, addEntry } = await import('@flowspec/registry');
@@ -140,16 +146,25 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
       const repoRoot = path.dirname(dir);
       // ensure full is fresh
       for (const r of [repoRoot, process.cwd()]) {
-        try { syncFromFilesystem(r, { flowspecDir: dir, kind: 'full', prune: true }); break; } catch {}
+        try {
+          syncFromFilesystem(r, { flowspecDir: dir, kind: 'full', prune: true });
+          break;
+        } catch {}
       }
       // find entry in full (or workspace) to get path/title
       let entry: { path: string; title: string; rootId: string } | null = null;
       for (const r of [repoRoot, process.cwd()]) {
         try {
           const full = loadFull(r);
-          if (full.entries[id]) { entry = full.entries[id] as unknown as typeof entry; break; }
+          if (full.entries[id]) {
+            entry = full.entries[id] as unknown as typeof entry;
+            break;
+          }
           const ws = loadWorkspace(r);
-          if (ws.entries[id]) { entry = ws.entries[id] as unknown as typeof entry; break; }
+          if (ws.entries[id]) {
+            entry = ws.entries[id] as unknown as typeof entry;
+            break;
+          }
         } catch {}
       }
       // fallback: try parse file directly at flowspecDir/id.md
@@ -159,23 +174,51 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
           try {
             const raw = fs.readFileSync(candidate, 'utf-8');
             const parsed = parseFlowSpecFromMarkdown(raw);
-            if (parsed) entry = { path: path.relative(path.dirname(dir), candidate).split(path.sep).join('/'), title: parsed.title, rootId: parsed.rootId };
+            if (parsed)
+              entry = {
+                path: path.relative(path.dirname(dir), candidate).split(path.sep).join('/'),
+                title: parsed.title,
+                rootId: parsed.rootId,
+              };
           } catch {}
         }
       }
-      if (!entry) return reply.code(404).send({ ok: false, error: `flowspec "${id}" not found in full` });
+      if (!entry)
+        return reply.code(404).send({ ok: false, error: `flowspec "${id}" not found in full` });
       // add to workspace (and ensure full has it)
       for (const r of [repoRoot, process.cwd()]) {
         try {
           const ws = loadWorkspace(r);
           if (!(id in ws.entries)) {
             const now = new Date().toISOString();
-            addEntry('workspace', id, { path: entry.path, title: entry.title, rootId: entry.rootId, addedAt: now, updatedAt: now }, r);
+            addEntry(
+              'workspace',
+              id,
+              {
+                path: entry.path,
+                title: entry.title,
+                rootId: entry.rootId,
+                addedAt: now,
+                updatedAt: now,
+              },
+              r
+            );
           }
           const full = loadFull(r);
           if (!(id in full.entries)) {
             const now = new Date().toISOString();
-            addEntry('full', id, { path: entry.path, title: entry.title, rootId: entry.rootId, addedAt: now, updatedAt: now }, r);
+            addEntry(
+              'full',
+              id,
+              {
+                path: entry.path,
+                title: entry.title,
+                rootId: entry.rootId,
+                addedAt: now,
+                updatedAt: now,
+              },
+              r
+            );
           }
           break;
         } catch {}
@@ -189,11 +232,14 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
   app.post('/api/workspace/remove', async (req, reply) => {
     const body = req.body as { id?: string; dir?: string } | undefined;
     const dirParam = resolveFlowspecDir(
-      (body?.dir as string | undefined) ?? (req.query as Record<string, string> | undefined)?.dir as string | undefined,
+      (body?.dir as string | undefined) ??
+        ((req.query as Record<string, string> | undefined)?.dir as string | undefined),
       flowspecDir
     );
     const dir = path.resolve(dirParam);
-    const id = (body?.id as string | undefined)?.trim() ?? (req.query as Record<string, string> | undefined)?.id?.trim();
+    const id =
+      (body?.id as string | undefined)?.trim() ??
+      (req.query as Record<string, string> | undefined)?.id?.trim();
     if (!id) return reply.code(400).send({ ok: false, error: 'missing id' });
     try {
       const { loadWorkspace, removeEntry } = await import('@flowspec/registry');
@@ -210,7 +256,9 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
       }
       // try fallback root
       if (!removed) {
-        try { removed = removeEntry('workspace', id, repoRoot); } catch {}
+        try {
+          removed = removeEntry('workspace', id, repoRoot);
+        } catch {}
       }
       if (!removed) return reply.code(404).send({ ok: false, error: `id not in workspace: ${id}` });
       return reply.send({ ok: true, id });
@@ -226,7 +274,12 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const hiddenDir = getHiddenDirParam(
+      req as unknown as {
+        query?: Record<string, string>;
+        headers?: Record<string, string | string[] | undefined>;
+      }
+    );
     const raw = loadSpecRaw(decodedId, dir);
     const specPath = resolveSpecPath(decodedId, dir);
     const lockPath = resolveLockPath(decodedId, dir, hiddenDir ? { hiddenDir } : undefined);
@@ -273,7 +326,12 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const hiddenDir = getHiddenDirParam(
+      req as unknown as {
+        query?: Record<string, string>;
+        headers?: Record<string, string | string[] | undefined>;
+      }
+    );
     const body = req.body as Record<string, unknown> | undefined;
     const holder =
       (req.headers['x-flow-lock-holder'] as string | undefined) ??
@@ -342,7 +400,12 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const hiddenDir = getHiddenDirParam(
+      req as unknown as {
+        query?: Record<string, string>;
+        headers?: Record<string, string | string[] | undefined>;
+      }
+    );
     const status = getLockStatus(decodedId, dir, hiddenDir);
     return reply.send({
       id: decodedId,
@@ -358,8 +421,15 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
-    const body = req.body as { holder?: string; note?: string; force?: boolean; hiddenDir?: string } | undefined;
+    const hiddenDir = getHiddenDirParam(
+      req as unknown as {
+        query?: Record<string, string>;
+        headers?: Record<string, string | string[] | undefined>;
+      }
+    );
+    const body = req.body as
+      | { holder?: string; note?: string; force?: boolean; hiddenDir?: string }
+      | undefined;
     const holder = body?.holder ?? `web:${Date.now()}`;
     const bodyHidden = (body?.hiddenDir as string | undefined) ?? hiddenDir;
     try {
@@ -378,7 +448,11 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
         id: decodedId,
         info,
         specPath: resolveSpecPath(decodedId, dir),
-        lockPath: resolveLockPath(decodedId, dir, bodyHidden ? { hiddenDir: bodyHidden } : undefined),
+        lockPath: resolveLockPath(
+          decodedId,
+          dir,
+          bodyHidden ? { hiddenDir: bodyHidden } : undefined
+        ),
       });
     } catch (e: unknown) {
       const msg = toApiError(e);
@@ -392,7 +466,12 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const hiddenDir = getHiddenDirParam(
+      req as unknown as {
+        query?: Record<string, string>;
+        headers?: Record<string, string | string[] | undefined>;
+      }
+    );
     const body = req.body as { holder?: string; force?: boolean; hiddenDir?: string } | undefined;
     const holder =
       body?.holder ??
@@ -401,14 +480,22 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const needForce = forceRaw === true || (forceRaw as unknown) === 'true' || !holder;
     const bodyHidden = (body?.hiddenDir as string | undefined) ?? hiddenDir;
     try {
-      releaseLock(decodedId, holder, { force: needForce, flowspecDir: dir, ...(bodyHidden ? { hiddenDir: bodyHidden } : {}) });
+      releaseLock(decodedId, holder, {
+        force: needForce,
+        flowspecDir: dir,
+        ...(bodyHidden ? { hiddenDir: bodyHidden } : {}),
+      });
       broadcast(decodedId, dir, { type: 'lock', lock: getLockStatus(decodedId, dir, bodyHidden) });
       return reply.send({
         ok: true,
         locked: false,
         id: decodedId,
         specPath: resolveSpecPath(decodedId, dir),
-        lockPath: resolveLockPath(decodedId, dir, bodyHidden ? { hiddenDir: bodyHidden } : undefined),
+        lockPath: resolveLockPath(
+          decodedId,
+          dir,
+          bodyHidden ? { hiddenDir: bodyHidden } : undefined
+        ),
       });
     } catch (e: unknown) {
       const msg = toApiError(e);

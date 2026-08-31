@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+# husky pre-commit: auto format with biome (prettier-compatible)
+# runs lint-staged on staged files, then re-adds formatted files
+
+# lint-staged will run `biome check --write --unsafe` for js/ts and `biome format --write` for json/css/md
+pnpm exec lint-staged --no-stash || {
+  echo "lint-staged failed, trying fallback biome format..."
+  pnpm exec biome check --write --unsafe --no-errors-on-unmatched 2>/dev/null || true
+  pnpm exec biome format --write --no-errors-on-unmatched 2>/dev/null || true
+}
+
+# Optional: also run typecheck quickly? Uncomment to enforce
+# pnpm typecheck --silent || true
+# fallow advisory (non-blocking) - from `fallow hooks install`
+command -v fallow >/dev/null 2>&1 || exit 0
+UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+if [ -n "$UPSTREAM" ]; then
+  BASE="$(git merge-base "$UPSTREAM" HEAD 2>/dev/null || echo "$UPSTREAM")"
+else
+  BASE="main"
+fi
+fallow audit --base "$BASE" --quiet --gate-marker pre-commit || true
+

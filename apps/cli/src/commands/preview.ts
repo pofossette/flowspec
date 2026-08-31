@@ -31,7 +31,14 @@ export function registerPreviewCommand(flow: Command): void {
           : `http://${opts.host}:${actualPort}/`;
         console.log(
           JSON.stringify(
-            { ok: true, previewUrl, displayPreviewUrl, id: id || null, dir: absoluteDir, port: actualPort },
+            {
+              ok: true,
+              previewUrl,
+              displayPreviewUrl,
+              id: id || null,
+              dir: absoluteDir,
+              port: actualPort,
+            },
             null,
             2
           )

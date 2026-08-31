@@ -61,7 +61,11 @@ export function BlockMarkdownEditor(props: Props): React.JSX.Element {
 
   // placeholder hint: BlockNote shows placeholder via empty block, we expose via data attribute for CSS
   return (
-    <div data-testid="block-editor" className="block-markdown-editor" data-placeholder={placeholder ?? ''}>
+    <div
+      data-testid="block-editor"
+      className="block-markdown-editor"
+      data-placeholder={placeholder ?? ''}
+    >
       <BlockNoteView
         editor={editor as unknown as Parameters<typeof BlockNoteView>[0]['editor']} // lib type gap: blocknote generic schema mismatch
         editable={!readOnly}

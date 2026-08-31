@@ -48,11 +48,12 @@ export class VCursorHelper {
 
   constructor(
     private readonly page: Page,
-    private readonly opts: VCursorOptions = {},
+    private readonly opts: VCursorOptions = {}
   ) {}
 
-  private merged(opts?: VCursorOptions): Required<Pick<VCursorOptions, 'steps' | 'delayMs'>> &
-    VCursorOptions {
+  private merged(
+    opts?: VCursorOptions
+  ): Required<Pick<VCursorOptions, 'steps' | 'delayMs'>> & VCursorOptions {
     const baseSteps = this.opts.steps ?? DEFAULT_STEPS;
     const baseDelay = this.opts.delayMs ?? DEFAULT_DELAY_MS;
     const baseLabel = this.opts.label;
@@ -72,7 +73,7 @@ export class VCursorHelper {
     await this.page.evaluate(() => {
       const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
       if (!w.__VCURSOR__) {
-        let current: VCursorGlobalShape = {
+        const current: VCursorGlobalShape = {
           x: 0,
           y: 0,
           active: false,
@@ -159,7 +160,7 @@ export class VCursorHelper {
         await this.page.addInitScript(() => {
           const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
           if (!w.__VCURSOR__) {
-            let current: VCursorGlobalShape = {
+            const current: VCursorGlobalShape = {
               x: 0,
               y: 0,
               active: false,
@@ -213,27 +214,27 @@ export class VCursorHelper {
 
   private async syncVisual(next: Partial<VCursorGlobalShape>): Promise<void> {
     try {
-      await this.page.evaluate((detail: Partial<VCursorGlobalShape>) => {
-        const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
-        if (w.__VCURSOR__?.set) {
-          // set() already dispatches __vcursor:update – do not dispatch again
-          w.__VCURSOR__.set(detail);
-        } else if (w.__VCURSOR__) {
-          Object.assign(w.__VCURSOR__, detail);
-          window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
-        } else {
-          window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
-        }
-      }, next as unknown as Record<string, unknown>);
+      await this.page.evaluate(
+        (detail: Partial<VCursorGlobalShape>) => {
+          const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
+          if (w.__VCURSOR__?.set) {
+            // set() already dispatches __vcursor:update – do not dispatch again
+            w.__VCURSOR__.set(detail);
+          } else if (w.__VCURSOR__) {
+            Object.assign(w.__VCURSOR__, detail);
+            window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
+          } else {
+            window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
+          }
+        },
+        next as unknown as Record<string, unknown>
+      );
     } catch (e) {
       console.warn('[v-cursor] syncVisual failed (page closed/navigation)', String(e));
     }
   }
 
-  async moveTo(
-    locatorOrPos: Locator | Pos,
-    opts?: VCursorOptions,
-  ): Promise<Pos | null> {
+  async moveTo(locatorOrPos: Locator | Pos, opts?: VCursorOptions): Promise<Pos | null> {
     const m = this.merged(opts);
     const steps = m.steps;
     const delayMs = m.delayMs;
@@ -249,7 +250,12 @@ export class VCursorHelper {
         try {
           const r = await locatorOrPos.evaluate((el: Element) => {
             const rect = (el as HTMLElement).getBoundingClientRect();
-            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, w: rect.width, h: rect.height };
+            return {
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2,
+              w: rect.width,
+              h: rect.height,
+            };
           });
           if (r && typeof r.x === 'number' && typeof r.y === 'number') {
             // Use even zero-size rect center; if rect is truly empty (0,0 with no viewport), keep as valid pos
@@ -296,7 +302,11 @@ export class VCursorHelper {
       try {
         const cur = await this.page.evaluate(() => {
           const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
-          if (w.__VCURSOR__ && typeof w.__VCURSOR__.x === 'number' && typeof w.__VCURSOR__.y === 'number') {
+          if (
+            w.__VCURSOR__ &&
+            typeof w.__VCURSOR__.x === 'number' &&
+            typeof w.__VCURSOR__.y === 'number'
+          ) {
             return { x: w.__VCURSOR__.x, y: w.__VCURSOR__.y };
           }
           return null;
@@ -317,7 +327,7 @@ export class VCursorHelper {
                 w: window.innerWidth,
                 h: window.innerHeight,
               }));
-              if (wh && wh.w && wh.h) start = { x: wh.w / 2, y: wh.h / 2 };
+              if (wh?.w && wh.h) start = { x: wh.w / 2, y: wh.h / 2 };
               else start = { x: 0, y: 0 };
             } catch {
               start = { x: 0, y: 0 };
@@ -420,7 +430,10 @@ export class VCursorHelper {
       await this.page.mouse.down();
       await this.page.mouse.up();
     } catch (e) {
-      console.warn('[v-cursor] dblclick mouse sequence failed, fallback to locator.dblclick', String(e));
+      console.warn(
+        '[v-cursor] dblclick mouse sequence failed, fallback to locator.dblclick',
+        String(e)
+      );
       try {
         await locator.dblclick({ timeout: 3000 });
       } catch (e2) {
@@ -525,7 +538,7 @@ export class VCursorHelper {
   async type(
     locator: Locator,
     text: string,
-    opts?: VCursorOptions & { delay?: number },
+    opts?: VCursorOptions & { delay?: number }
   ): Promise<void> {
     const m = this.merged(opts);
     const showCursor = m.showCursor ?? true;
@@ -538,7 +551,10 @@ export class VCursorHelper {
     try {
       await locator.focus({ timeout: 2000 });
     } catch (e) {
-      console.warn('[v-cursor] type: focus failed, will try pressSequentially without focus', String(e));
+      console.warn(
+        '[v-cursor] type: focus failed, will try pressSequentially without focus',
+        String(e)
+      );
     }
 
     if (showCursor) await this.syncVisual({ active: true, label: `type` });

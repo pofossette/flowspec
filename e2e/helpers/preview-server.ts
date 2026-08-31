@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import * as net from 'node:net';
 
 const DEFAULT_WEB_PORT = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 5174);
@@ -27,7 +27,7 @@ export function getApiBaseUrl(): string {
 export async function waitForPreviewReady(
   baseURL: string = DEFAULT_BASE_URL,
   dirOrOptsOrTimeout?: string | number | { dir?: string; timeoutMs?: number },
-  timeoutMsArg?: number,
+  timeoutMsArg?: number
 ): Promise<void> {
   let dir: string | undefined;
   let timeoutMs = 15_000;
@@ -73,7 +73,7 @@ export async function waitForPreviewReady(
   }
 
   throw new Error(
-    `waitForPreviewReady timeout after ${timeoutMs}ms for ${baseURL}: ${String(lastError)}`,
+    `waitForPreviewReady timeout after ${timeoutMs}ms for ${baseURL}: ${String(lastError)}`
   );
 }
 
@@ -89,7 +89,7 @@ export function previewUrlFor(
   id = 'demo',
   holder = 'e2e-test',
   baseURL: string = DEFAULT_BASE_URL,
-  hiddenDir?: string,
+  hiddenDir?: string
 ): string {
   // Allow 4th arg to be options object for forward compat
   let effectiveBase = baseURL;
@@ -155,7 +155,7 @@ export interface PreviewServerHandle {
  */
 export async function startPreviewServer(
   dir: string,
-  preferredPort = DEFAULT_PREVIEW_PORT,
+  preferredPort = DEFAULT_PREVIEW_PORT
 ): Promise<PreviewServerHandle> {
   const port = await pickPort(preferredPort);
   const args = [
@@ -217,7 +217,9 @@ export async function startPreviewServer(
     try {
       child.kill('SIGTERM');
     } catch {}
-    throw new Error(`startPreviewServer timeout for ${baseURL}: ${String(lastErr)} stdout=${stdout.slice(0, 500)}`);
+    throw new Error(
+      `startPreviewServer timeout for ${baseURL}: ${String(lastErr)} stdout=${stdout.slice(0, 500)}`
+    );
   }
 
   const stop = async (): Promise<void> => {
