@@ -16,7 +16,9 @@ test.describe('node-edit', () => {
     const app = new AppPage(page, cursor);
 
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch(() => {});
+    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+      console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
+    });
 
     await expect(app.flowTitle).toBeVisible({ timeout: 10_000 });
     await expect(app.canvas).toBeVisible({ timeout: 10_000 });
@@ -103,7 +105,9 @@ test.describe('node-edit', () => {
     const app = new AppPage(page, cursor);
 
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch(() => {});
+    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+      console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
+    });
 
     await expect(app.flowTitle).toBeVisible({ timeout: 10_000 });
     await expect(app.canvas).toBeVisible({ timeout: 10_000 });
@@ -176,7 +180,9 @@ test.describe('node-edit', () => {
 
     // Verify previewUrl refresh still contains content: re-goto previewUrl (reload loses dir param via cleanUrlDirParam)
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch(() => {});
+    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+      console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
+    });
     await expect(app.flowTitle).toBeVisible({ timeout: 10_000 });
     // Re-open node detail
     const nodes2 = page.locator('.react-flow__node');

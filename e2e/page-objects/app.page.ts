@@ -21,11 +21,11 @@ export class AppPage {
   }
 
   get canvasInner(): Locator {
-    return this.page.locator('[data-testid="flow-canvas"]');
+    return this.page.locator('[data-testid="flow-canvas-inner"]');
   }
 
   get flowCanvasFallback(): Locator {
-    return this.page.locator('[data-testid="flow-canvas"]');
+    return this.page.locator('[data-testid="flow-canvas-fallback"]');
   }
 
   get nodeDetail(): Locator {
@@ -58,6 +58,10 @@ export class AppPage {
 
   get lockBanner(): Locator {
     return this.page.locator('[data-testid="lock-banner"]');
+  }
+
+  get lockBannerCanvas(): Locator {
+    return this.page.locator('[data-testid="lock-banner-canvas"]');
   }
 
   get editToggle(): Locator {

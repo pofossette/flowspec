@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -57,6 +58,16 @@ function findRepoRoot(start: string): string {
 export function resolveHiddenDir(flowspecDir = DEFAULT_DIR): string {
   const abs = path.resolve(flowspecDir);
   if (path.basename(abs) === '.flowspec') return abs;
+  // Isolated temp handling: e2e/.tmp-flowspec/* and os tmp flowspec-test-* should keep locks inside the tmp dir itself
+  // This ensures `prepareFlowspecDir` isolation is respected even when tmp is nested under repo (repoRoot != abs)
+  if (
+    abs.includes(`${path.sep}.tmp-flowspec${path.sep}`) ||
+    abs.includes(`${path.sep}e2e${path.sep}.tmp-flowspec`) ||
+    abs.endsWith(`${path.sep}.tmp-flowspec`) ||
+    abs.includes(`${path.sep}flowspec-test-`)
+  ) {
+    return path.join(abs, '.flowspec');
+  }
   const repoRoot = findRepoRoot(abs);
   // 若 flowspecDir 本身就是一个隔离的临时目录（无 .git 的 tmp），直接在其内部创建 .flowspec，保证测试隔离
   if (repoRoot === abs) return path.join(abs, '.flowspec');
@@ -64,11 +75,25 @@ export function resolveHiddenDir(flowspecDir = DEFAULT_DIR): string {
   return path.join(repoRoot, '.flowspec');
 }
 
-/** 锁集中存储于 .flowspec/locks/<id>.lock，不污染文档目录且被 gitignore */
+/** 锁集中存储于 .flowspec/locks/<id>.lock，不污染文档目录且被 gitignore
+ *  For shared hidden dirs (repoRoot/.flowspec) with temp flowspec dirs, include dir hash to avoid cross-dir collision.
+ */
 export function resolveLockPath(id: string, flowspecDir = DEFAULT_DIR): string {
   const hiddenDir = resolveHiddenDir(flowspecDir);
   const locksDir = path.join(hiddenDir, 'locks');
   const safeId = id.replace(/[\\/]/g, '__').replace(/\.md$|\.json$/g, '');
+  const abs = path.resolve(flowspecDir);
+  const hiddenIsPerDir = hiddenDir === path.join(abs, '.flowspec');
+  // If hidden dir is shared (not per-dir) and flowspecDir is a tmp/e2e isolation dir, prefix with hash for true isolation
+  const needsHash =
+    !hiddenIsPerDir &&
+    (abs.includes(`${path.sep}.tmp-flowspec${path.sep}`) ||
+      abs.includes(`${path.sep}e2e${path.sep}.tmp-flowspec`) ||
+      abs.endsWith(`${path.sep}.tmp-flowspec`));
+  if (needsHash) {
+    const hash = crypto.createHash('sha256').update(abs).digest('hex').slice(0, 8);
+    return path.join(locksDir, `${hash}-${safeId}.lock`);
+  }
   return path.join(locksDir, `${safeId}.lock`);
 }
 

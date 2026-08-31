@@ -7,9 +7,13 @@ const CI = !!process.env.CI;
 
 test.describe('navigation', () => {
   test('should load app and show flow list', async ({ page, previewUrl, flowspecDir }) => {
+    const apiBase = 'http://127.0.0.1:5176';
     const url = previewUrl + '&vcursor=1';
-    await page.goto(url);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch(() => {});
+    const urlWithApi = url.includes('api=') ? url : url + `&api=${encodeURIComponent(apiBase)}`;
+    await page.goto(urlWithApi);
+    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+      console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
+    });
     // primary stable selector
     await expect(page.getByTestId('flow-title')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('left-nav')).toBeVisible({ timeout: 10_000 });
@@ -85,7 +89,9 @@ rootId: root-1
     });
 
     await page.goto(previewUrl);
-    await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch(() => {});
+    await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch((e) => {
+      console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
+    });
 
     await expect(page.getByTestId('flow-title')).toBeVisible({ timeout: 10_000 });
     const initialTitle = await page.getByTestId('flow-title').textContent();

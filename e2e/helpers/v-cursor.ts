@@ -591,29 +591,4 @@ export function vCursor(page: Page, opts?: VCursorOptions): VCursorHelper {
   return new VCursorHelper(page, opts);
 }
 
-// ---------------------------------------------------------------------------
-// Optional PageObject base – for specs reuse (Task 3 Step 4)
-// ---------------------------------------------------------------------------
-
-export class AppPage {
-  public cursor: VCursorHelper;
-
-  constructor(
-    public page: Page,
-    cursor?: VCursorHelper,
-  ) {
-    this.cursor = cursor ?? vCursor(page);
-  }
-
-  gotoFlowspec(url: string): Promise<null | import('@playwright/test').Response> {
-    return this.page.goto(url);
-  }
-
-  get canvas(): Locator {
-    return this.page.locator('.react-flow, [data-testid="flow-canvas"]');
-  }
-
-  get nodeDetail(): Locator {
-    return this.page.locator('[data-testid="node-detail"]');
-  }
-}
+// AppPage moved to e2e/page-objects/app.page.ts — do not duplicate here (kept single source of truth)
