@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures.js';
-import { waitForPreviewReady } from '../helpers/preview-server.js';
+import { waitForPreviewReady, getApiBaseUrl, getWebBaseUrl } from '../helpers/preview-server.js';
 import { vCursor } from '../helpers/v-cursor.js';
 import { AppPage } from '../page-objects/app.page.js';
 import * as fs from 'node:fs';
@@ -9,14 +9,15 @@ const CI = !!process.env.CI;
 
 test.describe('node-edit', () => {
   test('should open node detail and edit via v-cursor', async ({ page, previewUrl, flowspecDir }) => {
-    const apiBase = 'http://127.0.0.1:5176';
+    const apiBase = getApiBaseUrl();
+    const baseUrl = getWebBaseUrl();
     const url = previewUrl + '&vcursor=1';
     const urlWithApi = url.includes('api=') ? url : url + `&api=${encodeURIComponent(apiBase)}`;
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
     const app = new AppPage(page, cursor);
 
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+    await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch((e) => {
       console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
     });
 
@@ -98,14 +99,15 @@ test.describe('node-edit', () => {
   });
 
   test('should edit markdown via BlockNote and persist', async ({ page, previewUrl, flowspecDir }) => {
-    const apiBase = 'http://127.0.0.1:5176';
+    const apiBase = getApiBaseUrl();
+    const baseUrl = getWebBaseUrl();
     const url = previewUrl + '&vcursor=1';
     const urlWithApi = url.includes('api=') ? url : url + `&api=${encodeURIComponent(apiBase)}`;
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
     const app = new AppPage(page, cursor);
 
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+    await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch((e) => {
       console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
     });
 
@@ -180,7 +182,7 @@ test.describe('node-edit', () => {
 
     // Verify previewUrl refresh still contains content: re-goto previewUrl (reload loses dir param via cleanUrlDirParam)
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+    await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch((e) => {
       console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
     });
     await expect(app.flowTitle).toBeVisible({ timeout: 10_000 });

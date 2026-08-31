@@ -1,9 +1,18 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import * as net from 'node:net';
 
-const DEFAULT_BASE_URL = 'http://127.0.0.1:5174';
-const DEFAULT_PREVIEW_PORT = 5176;
-const FALLBACK_PREVIEW_PORT = 5177;
+const DEFAULT_WEB_PORT = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 5174);
+const DEFAULT_PREVIEW_PORT = Number(process.env.PLAYWRIGHT_API_PORT ?? 5176);
+const FALLBACK_PREVIEW_PORT = DEFAULT_PREVIEW_PORT + 1;
+const DEFAULT_BASE_URL = `http://127.0.0.1:${DEFAULT_WEB_PORT}`;
+export const DEFAULT_API_BASE = `http://127.0.0.1:${DEFAULT_PREVIEW_PORT}`;
+// Dynamic port helpers for specs – respects env overrides (findings #6)
+export function getWebBaseUrl(): string {
+  return process.env.PLAYWRIGHT_WEB_BASE_URL ?? DEFAULT_BASE_URL;
+}
+export function getApiBaseUrl(): string {
+  return process.env.PLAYWRIGHT_API_BASE_URL ?? process.env.FLOW_PREVIEW_API ?? DEFAULT_API_BASE;
+}
 
 /**
  * Poll until the preview frontend (or flow serve) responds with 200.
@@ -72,18 +81,35 @@ export async function waitForPreviewReady(
  * Build a preview URL with `dir`, `id` and `holder` query params.
  * Used with `page.goto(previewUrlFor(...))`.
  * Defaults mirror the brief: id=demo, holder=e2e-test, base 127.0.0.1:5174
+ * @param hiddenDir optional explicit hidden dir (e.g. `<dir>/.flowspec`) for per-dir isolation – passed as `hiddenDir` query param for server.
+ * Supports overload: previewUrlFor(dir, id, holder, base, hiddenDir) OR previewUrlFor(dir, id, holder, { baseURL, hiddenDir })
  */
 export function previewUrlFor(
   dir: string,
   id = 'demo',
   holder = 'e2e-test',
   baseURL: string = DEFAULT_BASE_URL,
+  hiddenDir?: string,
 ): string {
-  const u = new URL(baseURL);
+  // Allow 4th arg to be options object for forward compat
+  let effectiveBase = baseURL;
+  let effectiveHidden = hiddenDir;
+  if (typeof baseURL === 'object' && baseURL !== null) {
+    const opts = baseURL as unknown as { baseURL?: string; hiddenDir?: string };
+    effectiveBase = opts.baseURL ?? DEFAULT_BASE_URL;
+    effectiveHidden = opts.hiddenDir ?? hiddenDir;
+  }
+  // Resolve env override if baseURL is default and env set
+  if (effectiveBase === DEFAULT_BASE_URL && process.env.PLAYWRIGHT_WEB_BASE_URL) {
+    effectiveBase = process.env.PLAYWRIGHT_WEB_BASE_URL;
+  }
+  const u = new URL(effectiveBase);
   // Keep existing path (usually "/") and replace search
   u.searchParams.set('dir', dir);
   u.searchParams.set('id', id);
   u.searchParams.set('holder', holder);
+  if (effectiveHidden) u.searchParams.set('hiddenDir', effectiveHidden);
+  // Also forward FLOWSPEC_HIDDEN_DIR via hiddenDir for server that reads query
   return u.toString();
 }
 

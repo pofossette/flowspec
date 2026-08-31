@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures.js';
-import { previewUrlFor, waitForPreviewReady } from '../helpers/preview-server.js';
+import { previewUrlFor, waitForPreviewReady, getApiBaseUrl, getWebBaseUrl } from '../helpers/preview-server.js';
 import { vCursor } from '../helpers/v-cursor.js';
 import { writeFlowspecFile } from '../helpers/flow-utils.js';
 
@@ -7,11 +7,12 @@ const CI = !!process.env.CI;
 
 test.describe('navigation', () => {
   test('should load app and show flow list', async ({ page, previewUrl, flowspecDir }) => {
-    const apiBase = 'http://127.0.0.1:5176';
+    const apiBase = getApiBaseUrl();
+    const baseUrl = getWebBaseUrl();
     const url = previewUrl + '&vcursor=1';
     const urlWithApi = url.includes('api=') ? url : url + `&api=${encodeURIComponent(apiBase)}`;
     await page.goto(urlWithApi);
-    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
+    await waitForPreviewReady(baseUrl, flowspecDir, 15_000).catch((e) => {
       console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
     });
     // primary stable selector
@@ -52,7 +53,8 @@ rootId: root-1
 
     // Try to register second flow into workspace via API (best-effort)
     // This makes LeftNav show second item (workspace is source for LeftNav)
-    const apiBase = 'http://127.0.0.1:5176';
+    const apiBase = getApiBaseUrl();
+    const baseUrl = getWebBaseUrl();
     try {
       await fetch(`${apiBase}/api/workspace/add`, {
         method: 'POST',
@@ -63,9 +65,7 @@ rootId: root-1
       await fetch(`${apiBase}/api/flow-spec/full?dir=${encodeURIComponent(flowspecDir)}`).catch(() => {});
     } catch {}
 
-    // Use previewUrlFor with explicit dir and holder, and include api param to ensure frontend hits 5176
-    // Fallback to 5174 base with api param
-    const baseUrl = 'http://127.0.0.1:5174';
+    // Use previewUrlFor with explicit dir and holder, and include api param to ensure frontend hits dynamic port
     const previewUrl = previewUrlFor(flowspecDir, 'demo', 'e2e-test', baseUrl) + `&api=${encodeURIComponent(apiBase)}&vcursor=1`;
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
 

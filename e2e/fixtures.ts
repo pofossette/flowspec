@@ -15,7 +15,9 @@ export const test = base.extend<Fixtures>({
   },
   previewUrl: async ({ flowspecDir }, use) => {
     await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir);
-    await use(previewUrlFor(flowspecDir, 'demo', 'e2e-test'));
+    // hiddenDir is per-dir (<flowspecDir>/.flowspec) – previewUrlFor now supports passing it via query for server isolation
+    const hiddenDir = `${flowspecDir}/.flowspec`;
+    await use(previewUrlFor(flowspecDir, 'demo', 'e2e-test', undefined, hiddenDir));
   },
 });
 

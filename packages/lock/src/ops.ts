@@ -15,8 +15,8 @@ import { isLockExpired, type LockInfo, type LockStatus, lockInfoSchema, nowIso }
 const DEFAULT_DIR = 'flowspec';
 
 /** 内部：若因 30min TTL 过期则清理文件锁与 frontmatter，返回 true 表示已清理 */
-function autoClearExpiredLock(id: string, flowspecDir: string): boolean {
-  const lockPath = resolveLockPath(id, flowspecDir);
+function autoClearExpiredLock(id: string, flowspecDir: string, hiddenDir?: string): boolean {
+  const lockPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
   const specPath = resolveSpecPath(id, flowspecDir);
   let cleared = false;
@@ -52,9 +52,9 @@ function autoClearExpiredLock(id: string, flowspecDir: string): boolean {
 }
 
 /** 迁移：若旧路径存在锁，读取并迁移至新隐藏目录（幂等） */
-function migrateLegacyLockIfNeeded(id: string, flowspecDir: string): LockInfo | null {
+function migrateLegacyLockIfNeeded(id: string, flowspecDir: string, hiddenDir?: string): LockInfo | null {
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
-  const newPath = resolveLockPath(id, flowspecDir);
+  const newPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   if (!fs.existsSync(legacyPath)) return null;
   if (fs.existsSync(newPath)) {
     // 新旧并存：以新为准，清理旧的
@@ -90,9 +90,9 @@ function migrateLegacyLockIfNeeded(id: string, flowspecDir: string): LockInfo | 
 }
 
 /** 读取隐藏目录锁（.flowspec/locks/<id>.lock），兼容旧路径迁移 */
-export function readLock(id: string, flowspecDir = DEFAULT_DIR): LockInfo | null {
-  migrateLegacyLockIfNeeded(id, flowspecDir);
-  const lockPath = resolveLockPath(id, flowspecDir);
+export function readLock(id: string, flowspecDir = DEFAULT_DIR, hiddenDir?: string): LockInfo | null {
+  migrateLegacyLockIfNeeded(id, flowspecDir, hiddenDir);
+  const lockPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
   // 优先新路径，其次旧路径（已迁移则不再存在）
   const candidates = [lockPath, legacyPath];
@@ -151,11 +151,11 @@ export function readLock(id: string, flowspecDir = DEFAULT_DIR): LockInfo | null
   return null;
 }
 
-export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR): LockStatus {
+export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR, hiddenDir?: string): LockStatus {
   // 隐藏目录锁为权威来源；frontmatter 锁仅作兼容，检测到即告警并以 hidden 为准
   const specPath = resolveSpecPath(id, flowspecDir);
   // 迁移检查
-  migrateLegacyLockIfNeeded(id, flowspecDir);
+  migrateLegacyLockIfNeeded(id, flowspecDir, hiddenDir);
   // 先检查 frontmatter 是否残留旧锁（若存在，清理并告警，但不作为权威）
   let frontmatterLegacy: LockInfo | null = null;
   if (fs.existsSync(specPath) && specPath.endsWith('.md')) {
@@ -170,7 +170,7 @@ export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR): LockStatus
           ...(fmLock.expiresAt ? { expiresAt: fmLock.expiresAt } : {}),
         };
         if (isLockExpired(info)) {
-          autoClearExpiredLock(id, flowspecDir);
+          autoClearExpiredLock(id, flowspecDir, hiddenDir);
         } else {
           frontmatterLegacy = info;
         }
@@ -178,14 +178,14 @@ export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR): LockStatus
     } catch {}
   }
 
-  const fileInfo = readLock(id, flowspecDir);
+  const fileInfo = readLock(id, flowspecDir, hiddenDir);
   const fileStatus: LockStatus = fileInfo
     ? { locked: true, info: fileInfo }
     : { locked: false, info: null };
 
   // 若 file 已过期，readLock 已清理，这里再兜底
   if (fileStatus.locked && fileInfo && isLockExpired(fileInfo)) {
-    autoClearExpiredLock(id, flowspecDir);
+    autoClearExpiredLock(id, flowspecDir, hiddenDir);
     return { locked: false, info: null };
   }
 
@@ -235,16 +235,17 @@ export function getLockStatus(id: string, flowspecDir = DEFAULT_DIR): LockStatus
 export function acquireLock(
   id: string,
   holder?: string,
-  opts: { note?: string; force?: boolean; flowspecDir?: string } = {}
+  opts: { note?: string; force?: boolean; flowspecDir?: string; hiddenDir?: string } = {}
 ): LockInfo {
   const flowspecDir = opts.flowspecDir ?? DEFAULT_DIR;
-  const lockPath = resolveLockPath(id, flowspecDir);
+  const hiddenDir = opts.hiddenDir;
+  const lockPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
   ensureFlowspecDir(flowspecDir);
-  ensureHiddenDir(flowspecDir);
+  ensureHiddenDir(flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const resolvedHolder = holder?.trim() || `agent:${process.pid}`;
-  const current = getLockStatus(id, flowspecDir);
+  const current = getLockStatus(id, flowspecDir, hiddenDir);
   if (current.locked && !opts.force) {
     throw new Error(
       `flowspec "${id}" is already locked by "${current.info.holder}" since ${current.info.acquiredAt}`
@@ -295,7 +296,7 @@ export function acquireLock(
   } catch (e: unknown) {
     const err = e as NodeJS.ErrnoException;
     if (err.code === 'EEXIST') {
-      const again = readLock(id, flowspecDir);
+      const again = readLock(id, flowspecDir, hiddenDir);
       throw new Error(
         `flowspec "${id}" is already locked by "${again?.holder ?? current.info?.holder ?? 'unknown'}"`
       );
@@ -308,14 +309,15 @@ export function acquireLock(
 export function releaseLock(
   id: string,
   holder?: string,
-  opts: { force?: boolean; flowspecDir?: string } = {}
+  opts: { force?: boolean; flowspecDir?: string; hiddenDir?: string } = {}
 ): void {
   const flowspecDir = opts.flowspecDir ?? DEFAULT_DIR;
-  const lockPath = resolveLockPath(id, flowspecDir);
+  const hiddenDir = opts.hiddenDir;
+  const lockPath = resolveLockPath(id, flowspecDir, hiddenDir ? { hiddenDir } : undefined);
   const legacyPath = resolveLegacyLockPath(id, flowspecDir);
   const specPath = resolveSpecPath(id, flowspecDir);
-  const current = getLockStatus(id, flowspecDir);
-  const fileInfo = readLock(id, flowspecDir);
+  const current = getLockStatus(id, flowspecDir, hiddenDir);
+  const fileInfo = readLock(id, flowspecDir, hiddenDir);
   if (!current.locked && !fileInfo) {
     // 即便 hidden 已空，若 frontmatter 仍残留旧锁，清理之
     if (fs.existsSync(specPath) && specPath.endsWith('.md')) {

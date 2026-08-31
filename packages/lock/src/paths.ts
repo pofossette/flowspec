@@ -1,4 +1,3 @@
-import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
@@ -55,19 +54,21 @@ function findRepoRoot(start: string): string {
 }
 
 /** 隐藏目录 .flowspec（与 flowspec 文档同级的隐藏目录，自动 gitignore） */
-export function resolveHiddenDir(flowspecDir = DEFAULT_DIR): string {
+export function resolveHiddenDir(
+  flowspecDir = DEFAULT_DIR,
+  opts?: { hiddenDir?: string } | string,
+): string {
+  const explicitHidden = typeof opts === 'string' ? opts : opts?.hiddenDir;
+  if (explicitHidden) return path.resolve(explicitHidden);
+  const envHidden = process.env.FLOWSPEC_HIDDEN_DIR ?? process.env.FLOW_HIDDEN_DIR;
+  if (envHidden) return path.resolve(envHidden);
   const abs = path.resolve(flowspecDir);
   if (path.basename(abs) === '.flowspec') return abs;
-  // Isolated temp handling: e2e/.tmp-flowspec/* and os tmp flowspec-test-* should keep locks inside the tmp dir itself
-  // This ensures `prepareFlowspecDir` isolation is respected even when tmp is nested under repo (repoRoot != abs)
-  if (
-    abs.includes(`${path.sep}.tmp-flowspec${path.sep}`) ||
-    abs.includes(`${path.sep}e2e${path.sep}.tmp-flowspec`) ||
-    abs.endsWith(`${path.sep}.tmp-flowspec`) ||
-    abs.includes(`${path.sep}flowspec-test-`)
-  ) {
-    return path.join(abs, '.flowspec');
-  }
+  // Per-dir isolation: if flowspecDir already contains a .flowspec (created by prepareFlowspecDir), use it.
+  // This replaces substring heuristics (.tmp-flowspec / flowspec-test-) with an explicit filesystem check.
+  try {
+    if (fs.existsSync(path.join(abs, '.flowspec'))) return path.join(abs, '.flowspec');
+  } catch {}
   const repoRoot = findRepoRoot(abs);
   // 若 flowspecDir 本身就是一个隔离的临时目录（无 .git 的 tmp），直接在其内部创建 .flowspec，保证测试隔离
   if (repoRoot === abs) return path.join(abs, '.flowspec');
@@ -75,25 +76,15 @@ export function resolveHiddenDir(flowspecDir = DEFAULT_DIR): string {
   return path.join(repoRoot, '.flowspec');
 }
 
-/** 锁集中存储于 .flowspec/locks/<id>.lock，不污染文档目录且被 gitignore
- *  For shared hidden dirs (repoRoot/.flowspec) with temp flowspec dirs, include dir hash to avoid cross-dir collision.
- */
-export function resolveLockPath(id: string, flowspecDir = DEFAULT_DIR): string {
-  const hiddenDir = resolveHiddenDir(flowspecDir);
+/** 锁集中存储于 .flowspec/locks/<id>.lock，不污染文档目录且被 gitignore */
+export function resolveLockPath(
+  id: string,
+  flowspecDir = DEFAULT_DIR,
+  opts?: { hiddenDir?: string } | string,
+): string {
+  const hiddenDir = resolveHiddenDir(flowspecDir, opts as unknown as string | { hiddenDir?: string });
   const locksDir = path.join(hiddenDir, 'locks');
   const safeId = id.replace(/[\\/]/g, '__').replace(/\.md$|\.json$/g, '');
-  const abs = path.resolve(flowspecDir);
-  const hiddenIsPerDir = hiddenDir === path.join(abs, '.flowspec');
-  // If hidden dir is shared (not per-dir) and flowspecDir is a tmp/e2e isolation dir, prefix with hash for true isolation
-  const needsHash =
-    !hiddenIsPerDir &&
-    (abs.includes(`${path.sep}.tmp-flowspec${path.sep}`) ||
-      abs.includes(`${path.sep}e2e${path.sep}.tmp-flowspec`) ||
-      abs.endsWith(`${path.sep}.tmp-flowspec`));
-  if (needsHash) {
-    const hash = crypto.createHash('sha256').update(abs).digest('hex').slice(0, 8);
-    return path.join(locksDir, `${hash}-${safeId}.lock`);
-  }
   return path.join(locksDir, `${safeId}.lock`);
 }
 
@@ -107,8 +98,11 @@ export function ensureFlowspecDir(flowspecDir = DEFAULT_DIR): void {
   fs.mkdirSync(path.resolve(flowspecDir), { recursive: true });
 }
 
-export function ensureHiddenDir(flowspecDir = DEFAULT_DIR): string {
-  const dir = resolveHiddenDir(flowspecDir);
+export function ensureHiddenDir(
+  flowspecDir = DEFAULT_DIR,
+  opts?: { hiddenDir?: string } | string,
+): string {
+  const dir = resolveHiddenDir(flowspecDir, opts as unknown as string | { hiddenDir?: string });
   fs.mkdirSync(dir, { recursive: true });
   const locksDir = path.join(dir, 'locks');
   fs.mkdirSync(locksDir, { recursive: true });

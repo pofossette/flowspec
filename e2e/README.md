@@ -42,7 +42,7 @@ pnpm test:e2e:debug    # 调试模式：Playwright Inspector
 http://127.0.0.1:5174/?dir=/absolute/path/to/e2e/.tmp-flowspec&file=demo&workspace=e2e-test&vcursor=1
 ```
 
-`previewUrlFor()`（`e2e/helpers/preview-server.ts`）会为用例自动拼接参数；手动访问时加 `?vcursor=1` 会挂载 `VCursorOverlay`（React）叠加层，即使不加，`VCursorHelper` 也会在 potřeb 时注入回退 DOM 叠加（`[data-testid="vcursor"]`）。
+`previewUrlFor()`（`e2e/helpers/preview-server.ts`）会为用例自动拼接参数；手动访问时加 `?vcursor=1` 会挂载 `VCursorOverlay`（React）叠加层，即使不加，`VCursorHelper` 也会在需要时注入回退 DOM 叠加（`[data-testid="vcursor"]`）。
 
 `CI` 环境下建议 `showCursor: false` 加速（`vCursor` 仅驱动 `page.mouse` 不做视觉同步）。
 

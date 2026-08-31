@@ -200,18 +200,31 @@ function FlowMapCanvasInner(props: {
   );
 
   // sync back to FlowSpec on any rf change (including position drag)
+  // Debounce and threshold constants – keep in sync with handleChange WS interval
+  const FLOW_SYNC_DEBOUNCE_MS = 300;
+  const POSITION_THRESHOLD_PX = 1;
+  const rfRef = React.useRef(rf);
+  const specRef = React.useRef(spec);
+  React.useEffect(() => {
+    rfRef.current = rf;
+  }, [rf]);
+  React.useEffect(() => {
+    specRef.current = spec;
+  }, [spec]);
   React.useEffect(() => {
     if (!onChange || readOnly) return;
     const t = setTimeout(() => {
-      const next = rfToFlowSpec({ nodes: nodes as RFNode[], edges: edges as RFEdge[] }, spec);
+      const curSpec = specRef.current;
+      const curRf = rfRef.current;
+      const next = rfToFlowSpec({ nodes: nodes as RFNode[], edges: edges as RFEdge[] }, curSpec);
       const countChanged =
-        next.nodes.length !== spec.nodes.length || next.edges.length !== spec.edges.length;
+        next.nodes.length !== curSpec.nodes.length || next.edges.length !== curSpec.edges.length;
       let positionChanged = false;
       if (!countChanged) {
         // Compare current RF state positions vs original rf (derived from spec)
-        // to detect drags. rf is flowSpecToRF(spec); nodes is live ReactFlow state.
-        // Using rf avoids false positives from auto-position filling when spec had null positions.
-        const rfMap = new Map(rf.nodes.map((n) => [n.id, n] as const));
+        // to detect drags. curRf is flowSpecToRF(curSpec); nodes is live ReactFlow state.
+        // Using curRf avoids false positives from auto-position filling when spec had null positions.
+        const rfMap = new Map(curRf.nodes.map((n) => [n.id, n] as const));
         for (const n of nodes as RFNode[]) {
           const orig = rfMap.get(n.id);
           if (!orig) {
@@ -219,8 +232,8 @@ function FlowMapCanvasInner(props: {
             break;
           }
           if (
-            Math.abs(n.position.x - orig.position.x) > 1 ||
-            Math.abs(n.position.y - orig.position.y) > 1
+            Math.abs(n.position.x - orig.position.x) > POSITION_THRESHOLD_PX ||
+            Math.abs(n.position.y - orig.position.y) > POSITION_THRESHOLD_PX
           ) {
             positionChanged = true;
             break;
@@ -228,9 +241,9 @@ function FlowMapCanvasInner(props: {
         }
       }
       if (countChanged || positionChanged) onChange(next);
-    }, 300);
+    }, FLOW_SYNC_DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, [nodes, edges, onChange, spec, readOnly, rf]);
+  }, [nodes, edges, onChange, readOnly]);
 
   // MiniMap per-kind coloring — aligned with node KIND_DEFAULTS border palette
   const minimapNodeColor = React.useCallback((n: { data?: { kind?: string } }): string => {

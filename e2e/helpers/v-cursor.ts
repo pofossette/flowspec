@@ -21,6 +21,8 @@ function isLocator(v: unknown): v is Locator {
   );
 }
 
+// Unified with packages/web/src/components/VCursor.tsx VCursorState/VCursorGlobal
+// Keep shape in sync: { x, y, active, label, visible, set, get }
 type VCursorGlobalShape = {
   x: number;
   y: number;
@@ -176,8 +178,8 @@ export class VCursorHelper {
           }
         });
         this.initScriptInstalled = true;
-      } catch {
-        // page may be closed – ignore
+      } catch (e) {
+        console.warn('[v-cursor] addInitScript failed (page may be closed)', String(e));
       }
     }
   }
@@ -188,12 +190,14 @@ export class VCursorHelper {
       if (box) {
         return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
       }
-    } catch {
-      // boundingBox timeout (element not found / detached) – fall through to evaluate fallback
+    } catch (e) {
+      console.warn('[v-cursor] boundingBox failed, trying evaluate fallback', String(e));
     }
     // Fallback: getBoundingClientRect via evaluate
     try {
-      await locator.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
+      await locator.scrollIntoViewIfNeeded({ timeout: 2000 }).catch((e) => {
+        console.warn('[v-cursor] scrollIntoViewIfNeeded failed', String(e));
+      });
       const rect = await locator.evaluate((el: Element) => {
         const r = (el as HTMLElement).getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
@@ -201,8 +205,8 @@ export class VCursorHelper {
       if (rect && rect.w > 0 && rect.h > 0) {
         return { x: rect.x, y: rect.y };
       }
-    } catch {
-      // fall through
+    } catch (e) {
+      console.warn('[v-cursor] evaluate rect failed', String(e));
     }
     return null;
   }
@@ -221,8 +225,8 @@ export class VCursorHelper {
           window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
         }
       }, next as unknown as Record<string, unknown>);
-    } catch {
-      // ignore if page closed / navigation
+    } catch (e) {
+      console.warn('[v-cursor] syncVisual failed (page closed/navigation)', String(e));
     }
   }
 
@@ -258,15 +262,16 @@ export class VCursorHelper {
               if (!isVisible) dest = null;
             }
           }
-        } catch {
+        } catch (e) {
+          console.warn('[v-cursor] moveTo evaluate fallback failed', String(e));
           dest = null;
         }
         if (!dest) {
-          // absolute fallback: direct locator click
+          console.warn('[v-cursor] moveTo: target not resolvable, fallback to locator.click');
           try {
             await locatorOrPos.click({ timeout: 3000 });
-          } catch {
-            // ignore
+          } catch (e) {
+            console.warn('[v-cursor] fallback locator.click failed', String(e));
           }
           return null;
         }
@@ -319,7 +324,8 @@ export class VCursorHelper {
             }
           }
         }
-      } catch {
+      } catch (e) {
+        console.warn('[v-cursor] resolving start position failed', String(e));
         start = { x: 0, y: 0 };
       }
       // If start equals dest exactly (e.g., dest is 0,0 and start is 0,0), keep start as is – loop will handle zero distance
@@ -359,12 +365,12 @@ export class VCursorHelper {
       await this.page.mouse.down();
       await this.page.waitForTimeout(50);
       await this.page.mouse.up();
-    } catch {
-      // fallback to locator click if mouse fails (e.g., element detached)
+    } catch (e) {
+      console.warn('[v-cursor] click mouse down/up failed, fallback to locator.click', String(e));
       try {
         await locator.click({ timeout: 3000 });
-      } catch {
-        // ignore
+      } catch (e2) {
+        console.warn('[v-cursor] fallback locator.click also failed', String(e2));
       }
     }
 
@@ -383,10 +389,11 @@ export class VCursorHelper {
 
     const pos = await this.moveTo(locator, { ...opts, label });
     if (pos === null) {
+      console.warn('[v-cursor] dblclick: moveTo returned null, fallback to locator.dblclick');
       try {
         await locator.dblclick({ timeout: 3000 });
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn('[v-cursor] dblclick fallback failed', String(e));
       }
       if (showCursor) await this.syncVisual({ active: false });
       return;
@@ -412,11 +419,12 @@ export class VCursorHelper {
       await this.page.waitForTimeout(60);
       await this.page.mouse.down();
       await this.page.mouse.up();
-    } catch {
+    } catch (e) {
+      console.warn('[v-cursor] dblclick mouse sequence failed, fallback to locator.dblclick', String(e));
       try {
         await locator.dblclick({ timeout: 3000 });
-      } catch {
-        // ignore
+      } catch (e2) {
+        console.warn('[v-cursor] dblclick fallback also failed', String(e2));
       }
     }
     await this.syncVisual({ active: false, label: undefined });
@@ -426,7 +434,11 @@ export class VCursorHelper {
   async hover(locator: Locator, opts?: VCursorOptions): Promise<void> {
     const m = this.merged(opts);
     const label = m.label ?? 'hover';
-    await this.moveTo(locator, { ...opts, label });
+    const pos = await this.moveTo(locator, { ...opts, label });
+    if (pos === null) {
+      console.warn('[v-cursor] hover: target not resolvable, no-op');
+      return;
+    }
     // hover is just move; keep active false
     const showCursor = m.showCursor ?? true;
     if (showCursor) {
@@ -443,23 +455,22 @@ export class VCursorHelper {
 
     const fromPos = await this.moveTo(from, { ...opts, label });
     if (fromPos === null) {
-      // moveTo could not resolve from locator – fallback to native dragTo regardless of showCursor
-      // Do not interpolate from 0,0
+      console.warn('[v-cursor] drag: from target not resolvable, fallback to dragTo');
       try {
         await from.dragTo(to);
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn('[v-cursor] dragTo fallback failed', String(e));
       }
       if (showCursor) await this.syncVisual({ active: false, label: undefined });
       return;
     }
     const toPos = await this.resolveLocatorCenter(to);
     if (!toPos) {
-      // fallback: try direct drag via locator.dragTo
+      console.warn('[v-cursor] drag: to target not resolvable, fallback to dragTo');
       try {
         await from.dragTo(to);
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn('[v-cursor] dragTo fallback failed', String(e));
       }
       if (showCursor) await this.syncVisual({ active: false, label: undefined });
       return;
@@ -470,12 +481,12 @@ export class VCursorHelper {
     try {
       await this.page.mouse.down();
       await this.page.waitForTimeout(60);
-    } catch {
-      // fallback
+    } catch (e) {
+      console.warn('[v-cursor] drag mouse down failed, fallback to dragTo', String(e));
       try {
         await from.dragTo(to);
-      } catch {
-        // ignore
+      } catch (e2) {
+        console.warn('[v-cursor] dragTo fallback also failed', String(e2));
       }
       if (showCursor) await this.syncVisual({ active: false, label: undefined });
       return;
@@ -500,8 +511,8 @@ export class VCursorHelper {
 
     try {
       await this.page.mouse.up();
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[v-cursor] drag mouse up failed', String(e));
     }
 
     if (showCursor) {
@@ -523,23 +534,23 @@ export class VCursorHelper {
 
     await this.click(locator, { ...opts, label });
 
-    // Ensure focused
+    // Ensure focused – warn on fallback (was swallowed)
     try {
       await locator.focus({ timeout: 2000 });
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn('[v-cursor] type: focus failed, will try pressSequentially without focus', String(e));
     }
 
     if (showCursor) await this.syncVisual({ active: true, label: `type` });
 
     try {
       await locator.pressSequentially(text, { delay });
-    } catch {
-      // fallback to fill
+    } catch (e) {
+      console.warn('[v-cursor] pressSequentially failed, fallback to fill', String(e));
       try {
         await locator.fill(text);
-      } catch {
-        // last resort: keyboard type
+      } catch (e2) {
+        console.warn('[v-cursor] fill also failed, fallback to keyboard.type', String(e2));
         await this.page.keyboard.type(text, { delay });
       }
     }

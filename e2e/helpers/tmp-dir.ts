@@ -11,7 +11,7 @@ import * as crypto from 'node:crypto';
  */
 export async function prepareFlowspecDir(
   prefix = 'e2e',
-): Promise<{ dir: string; cleanup: () => Promise<void> }> {
+): Promise<{ dir: string; hiddenDir: string; cleanup: () => Promise<void> }> {
   const projectRoot = process.cwd();
   const baseTmp = path.join(projectRoot, 'e2e', '.tmp-flowspec');
   await fs.promises.mkdir(baseTmp, { recursive: true });
@@ -19,6 +19,10 @@ export async function prepareFlowspecDir(
   const rand = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
   const dir = path.join(baseTmp, `${prefix}-${rand}`);
   await fs.promises.mkdir(dir, { recursive: true });
+
+  // E2E isolation: create per-dir hidden dir explicitly (replaces substring heuristic in core)
+  const hiddenDir = path.join(dir, '.flowspec');
+  await fs.promises.mkdir(path.join(hiddenDir, 'locks'), { recursive: true });
 
   // Resolve source file: prefer flowspec/demo.md, fallback to fixtures sample.
   const candidateA = path.join(projectRoot, 'flowspec', 'demo.md');
@@ -39,7 +43,7 @@ export async function prepareFlowspecDir(
     await fs.promises.rm(dir, { recursive: true, force: true });
   };
 
-  return { dir, cleanup };
+  return { dir, hiddenDir, cleanup };
 }
 
 /**

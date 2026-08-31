@@ -27,34 +27,9 @@ function useQuery(): URLSearchParams {
     const onChange = (): void => setSearch(window.location.search);
     window.addEventListener('popstate', onChange);
     window.addEventListener('hashchange', onChange);
-    // pushState/replaceState do not fire popstate – patch to detect programmatic navigation
-    const origPush = window.history.pushState.bind(window.history);
-    const origReplace = window.history.replaceState.bind(window.history);
-    const patchPush: typeof window.history.pushState = function (
-      ...args: Parameters<typeof window.history.pushState>
-    ) {
-      const ret = (origPush as unknown as (...a: unknown[]) => unknown)(...args);
-      window.dispatchEvent(new Event('__qp:pushstate'));
-      onChange();
-      return ret as ReturnType<typeof window.history.pushState>;
-    };
-    const patchReplace: typeof window.history.replaceState = function (
-      ...args: Parameters<typeof window.history.replaceState>
-    ) {
-      const ret = (origReplace as unknown as (...a: unknown[]) => unknown)(...args);
-      window.dispatchEvent(new Event('__qp:pushstate'));
-      onChange();
-      return ret as ReturnType<typeof window.history.replaceState>;
-    };
-    window.history.pushState = patchPush;
-    window.history.replaceState = patchReplace;
-    window.addEventListener('__qp:pushstate', onChange);
     return () => {
       window.removeEventListener('popstate', onChange);
       window.removeEventListener('hashchange', onChange);
-      window.removeEventListener('__qp:pushstate', onChange);
-      window.history.pushState = origPush;
-      window.history.replaceState = origReplace;
     };
   }, []);
   return React.useMemo(() => new URLSearchParams(search), [search]);
@@ -84,11 +59,8 @@ export default function App(): React.JSX.Element {
   const query = useQuery();
   const showVCursor =
     query.get('vcursor') === '1' ||
-    // Vite build-time flag for E2E (also supports process.env.E2E when polyfilled)
     (typeof import.meta !== 'undefined' &&
-      (import.meta as unknown as { env?: Record<string, string> }).env?.E2E === '1') ||
-    (typeof process !== 'undefined' &&
-      (process as unknown as { env?: Record<string, string> }).env?.E2E === '1');
+      (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_E2E === '1');
   // Preserve initial navigation params (dir/id/holder/api) across cleanUrlDirParam's replaceState
   // which removes dir from URL – query is reactive for vcursor but dir must remain stable
   const initialParamsRef = React.useRef<URLSearchParams | null>(null);

@@ -15,8 +15,8 @@ biome-report/
 /test-results/
 /playwright-report/
 /playwright/.cache/
-coverage/
+/coverage/
 e2e/.tmp-flowspec/
 e2e/.flowspec/
 .flowspec/
-dist-e2e/
+/dist-e2e/

@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const WEB_PORT = Number(process.env.PLAYWRIGHT_WEB_PORT ?? 5174);
+const API_PORT = Number(process.env.PLAYWRIGHT_API_PORT ?? 5176);
+const WEB_BASE = `http://127.0.0.1:${WEB_PORT}`;
+const API_BASE = `http://127.0.0.1:${API_PORT}`;
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.spec.ts',
@@ -15,7 +20,7 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: 'http://127.0.0.1:5174',
+    baseURL: WEB_BASE,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -29,17 +34,15 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command:
-        'pnpm --filter flowspec exec node ./dist/run.js flow serve --dir ./e2e/.tmp-flowspec --port 5176 --host 127.0.0.1',
-      port: 5176,
+      command: `pnpm --filter flowspec exec node ./dist/run.js flow serve --dir ./e2e/.tmp-flowspec --port ${API_PORT} --host 127.0.0.1`,
+      port: API_PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
       stdout: 'pipe',
     },
     {
-      command:
-        'pnpm --filter @flowspec/web-app exec vite preview --port 5174 --host 127.0.0.1 --strictPort',
-      port: 5174,
+      command: `pnpm --filter @flowspec/web-app exec vite preview --port ${WEB_PORT} --host 127.0.0.1 --strictPort`,
+      port: WEB_PORT,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,
     },

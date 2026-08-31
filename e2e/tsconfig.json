@@ -12,5 +12,6 @@
     "noUnusedParameters": false
   },
   "include": ["**/*.ts"],
+  "exclude": ["node_modules", ".tmp-flowspec", "fixtures", "dist-e2e"],
   "references": []
 }

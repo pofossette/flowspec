@@ -28,6 +28,18 @@ import {
   toApiError,
 } from './helpers.js';
 
+function getHiddenDirParam(req: { query?: Record<string, string | undefined>; headers?: Record<string, string | string[] | undefined> }): string | undefined {
+  const q = req.query as Record<string, string | undefined> | undefined;
+  const fromQuery = q?.hiddenDir ?? q?.hidden_dir;
+  if (fromQuery) return fromQuery;
+  const fromHeader = req.headers?.['x-hidden-dir'] as string | undefined;
+  if (fromHeader) return fromHeader;
+  // Also support env override for E2E isolation (replaces substring heuristic via explicit dir)
+  const envHidden = process.env.FLOWSPEC_HIDDEN_DIR ?? process.env.FLOW_HIDDEN_DIR;
+  if (envHidden) return envHidden;
+  return undefined;
+}
+
 export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string): void {
   // REST: GET list — 预览面板只展示 .flowspec/workspace.json（运行目录下），不走文件扫描回退；workspace 为预览入口
   app.get('/api/flow-spec', async (req, reply) => {
@@ -214,10 +226,11 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
+    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
     const raw = loadSpecRaw(decodedId, dir);
     const specPath = resolveSpecPath(decodedId, dir);
-    const lockPath = resolveLockPath(decodedId, dir);
-    const lock = getLockStatus(decodedId, dir);
+    const lockPath = resolveLockPath(decodedId, dir, hiddenDir ? { hiddenDir } : undefined);
+    const lock = getLockStatus(decodedId, dir, hiddenDir);
     const rawContent = readRawSpecContent(specPath);
     if (!raw) {
       if (rawContent !== null && !isMarkdownFlowSpec(rawContent)) {
@@ -260,12 +273,13 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
+    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
     const body = req.body as Record<string, unknown> | undefined;
     const holder =
       (req.headers['x-flow-lock-holder'] as string | undefined) ??
       (req.headers['x-holder'] as string | undefined) ??
       (body?.holder as string | undefined);
-    const lock = getLockStatus(decodedId, dir);
+    const lock = getLockStatus(decodedId, dir, hiddenDir);
     if (lock.locked && holder && lock.info.holder !== holder) {
       return reply.code(409).send({ error: `locked by "${lock.info.holder}"` });
     }
@@ -301,13 +315,13 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     broadcast(decodedId, dir, {
       type: 'spec',
       spec: parsed.data,
-      lock: getLockStatus(decodedId, dir),
+      lock: getLockStatus(decodedId, dir, hiddenDir),
       bodyMarkdown: latestBody,
       frontmatter: latestFm,
     });
     if (lock.locked && holder && lock.info.holder === holder) {
       try {
-        releaseLock(decodedId, holder, { flowspecDir: dir });
+        releaseLock(decodedId, holder, { flowspecDir: dir, hiddenDir });
       } catch {}
     }
     ensureFileWatcher(decodedId, dir);
@@ -315,7 +329,7 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
       ok: true,
       id: decodedId,
       specPath: savedPath,
-      lock: getLockStatus(decodedId, dir),
+      lock: getLockStatus(decodedId, dir, hiddenDir),
       bodyMarkdown: latestBody,
       frontmatter: latestFm,
     });
@@ -328,11 +342,12 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const status = getLockStatus(decodedId, dir);
+    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const status = getLockStatus(decodedId, dir, hiddenDir);
     return reply.send({
       id: decodedId,
       specPath: resolveSpecPath(decodedId, dir),
-      lockPath: resolveLockPath(decodedId, dir),
+      lockPath: resolveLockPath(decodedId, dir, hiddenDir ? { hiddenDir } : undefined),
       ...status,
     });
   });
@@ -343,15 +358,18 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const body = req.body as { holder?: string; note?: string; force?: boolean } | undefined;
+    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const body = req.body as { holder?: string; note?: string; force?: boolean; hiddenDir?: string } | undefined;
     const holder = body?.holder ?? `web:${Date.now()}`;
+    const bodyHidden = (body?.hiddenDir as string | undefined) ?? hiddenDir;
     try {
       const info = acquireLock(decodedId, holder, {
         ...(body?.note ? { note: body.note } : {}),
         ...(body?.force !== undefined ? { force: body.force } : {}),
         flowspecDir: dir,
+        ...(bodyHidden ? { hiddenDir: bodyHidden } : {}),
       });
-      const lock = getLockStatus(decodedId, dir);
+      const lock = getLockStatus(decodedId, dir, bodyHidden);
       broadcast(decodedId, dir, { type: 'lock', lock });
       ensureFileWatcher(decodedId, dir);
       return reply.send({
@@ -360,7 +378,7 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
         id: decodedId,
         info,
         specPath: resolveSpecPath(decodedId, dir),
-        lockPath: resolveLockPath(decodedId, dir),
+        lockPath: resolveLockPath(decodedId, dir, bodyHidden ? { hiddenDir: bodyHidden } : undefined),
       });
     } catch (e: unknown) {
       const msg = toApiError(e);
@@ -374,21 +392,23 @@ export function registerFlowSpecRoutes(app: FastifyInstance, flowspecDir: string
     const dirParam =
       ((req.query as Record<string, string> | undefined)?.dir as string | undefined) ?? flowspecDir;
     const dir = resolveEffectiveDir(decodedId, dirParam, flowspecDir);
-    const body = req.body as { holder?: string; force?: boolean } | undefined;
+    const hiddenDir = getHiddenDirParam(req as unknown as { query?: Record<string, string>; headers?: Record<string, string | string[] | undefined> });
+    const body = req.body as { holder?: string; force?: boolean; hiddenDir?: string } | undefined;
     const holder =
       body?.holder ??
       ((req.query as Record<string, string> | undefined)?.holder as string | undefined);
     const forceRaw = body?.force ?? (req.query as Record<string, string> | undefined)?.force;
     const needForce = forceRaw === true || (forceRaw as unknown) === 'true' || !holder;
+    const bodyHidden = (body?.hiddenDir as string | undefined) ?? hiddenDir;
     try {
-      releaseLock(decodedId, holder, { force: needForce, flowspecDir: dir });
-      broadcast(decodedId, dir, { type: 'lock', lock: getLockStatus(decodedId, dir) });
+      releaseLock(decodedId, holder, { force: needForce, flowspecDir: dir, ...(bodyHidden ? { hiddenDir: bodyHidden } : {}) });
+      broadcast(decodedId, dir, { type: 'lock', lock: getLockStatus(decodedId, dir, bodyHidden) });
       return reply.send({
         ok: true,
         locked: false,
         id: decodedId,
         specPath: resolveSpecPath(decodedId, dir),
-        lockPath: resolveLockPath(decodedId, dir),
+        lockPath: resolveLockPath(decodedId, dir, bodyHidden ? { hiddenDir: bodyHidden } : undefined),
       });
     } catch (e: unknown) {
       const msg = toApiError(e);
