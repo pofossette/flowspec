@@ -20,7 +20,44 @@ import { usePreviewStore } from './store/preview-store.js';
 import { cleanUrlDirParam, displayDir } from './utils/dir.js';
 
 function useQuery(): URLSearchParams {
-  return React.useMemo(() => new URLSearchParams(window.location.search), []);
+  const [search, setSearch] = React.useState(() =>
+    typeof window !== 'undefined' ? window.location.search : '',
+  );
+  React.useEffect(() => {
+    const onChange = (): void => setSearch(window.location.search);
+    window.addEventListener('popstate', onChange);
+    window.addEventListener('hashchange', onChange);
+    // pushState/replaceState do not fire popstate – patch to detect programmatic navigation
+    const origPush = window.history.pushState.bind(window.history);
+    const origReplace = window.history.replaceState.bind(window.history);
+    const patchPush: typeof window.history.pushState = function (
+      ...args: Parameters<typeof window.history.pushState>
+    ) {
+      const ret = (origPush as unknown as (...a: unknown[]) => unknown)(...args);
+      window.dispatchEvent(new Event('__qp:pushstate'));
+      onChange();
+      return ret as ReturnType<typeof window.history.pushState>;
+    };
+    const patchReplace: typeof window.history.replaceState = function (
+      ...args: Parameters<typeof window.history.replaceState>
+    ) {
+      const ret = (origReplace as unknown as (...a: unknown[]) => unknown)(...args);
+      window.dispatchEvent(new Event('__qp:pushstate'));
+      onChange();
+      return ret as ReturnType<typeof window.history.replaceState>;
+    };
+    window.history.pushState = patchPush;
+    window.history.replaceState = patchReplace;
+    window.addEventListener('__qp:pushstate', onChange);
+    return () => {
+      window.removeEventListener('popstate', onChange);
+      window.removeEventListener('hashchange', onChange);
+      window.removeEventListener('__qp:pushstate', onChange);
+      window.history.pushState = origPush;
+      window.history.replaceState = origReplace;
+    };
+  }, []);
+  return React.useMemo(() => new URLSearchParams(search), [search]);
 }
 
 class ErrorBoundary extends React.Component<
@@ -52,13 +89,22 @@ export default function App(): React.JSX.Element {
       (import.meta as unknown as { env?: Record<string, string> }).env?.E2E === '1') ||
     (typeof process !== 'undefined' &&
       (process as unknown as { env?: Record<string, string> }).env?.E2E === '1');
-  const initialId = query.get('id') ?? 'demo';
-  const rawDir = query.get('dir') ?? 'flowspec';
+  // Preserve initial navigation params (dir/id/holder/api) across cleanUrlDirParam's replaceState
+  // which removes dir from URL – query is reactive for vcursor but dir must remain stable
+  const initialParamsRef = React.useRef<URLSearchParams | null>(null);
+  if (initialParamsRef.current === null) {
+    initialParamsRef.current = new URLSearchParams(
+      typeof window !== 'undefined' ? window.location.search : '',
+    );
+  }
+  const initialQuery = initialParamsRef.current;
+  const initialId = initialQuery.get('id') ?? 'demo';
+  const rawDir = initialQuery.get('dir') ?? 'flowspec';
   // 内部仍用绝对/原始 dir 请求后端，展示层用 displayDir 避免暴露宿主完整目录
   const dir = rawDir;
   const dirDisplay = displayDir(rawDir);
-  const holder = query.get('holder') ?? 'web:local';
-  const apiBase = query.get('api') ?? '';
+  const holder = initialQuery.get('holder') ?? 'web:local';
+  const apiBase = initialQuery.get('api') ?? '';
   const api = React.useCallback((p: string) => `${apiBase}${p}`, [apiBase]);
 
   // 首次挂载即清理地址栏中的绝对 dir

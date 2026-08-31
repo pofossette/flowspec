@@ -63,12 +63,9 @@ export class VCursorHelper {
     };
   }
 
-  private async ensureCursorInjected(): Promise<void> {
-    const show = this.opts.showCursor ?? true;
-    // per-call showCursor override is handled by caller; here we just ensure global if overall enabled
-    // If instance opts explicitly false and no per-call override, skip. Caller checks merged.showCursor.
-    // We keep this check permissive – evaluate is cheap.
-    if (show === false) return;
+  private async ensureCursorInjected(opts?: VCursorOptions): Promise<void> {
+    const mergedShow = opts?.showCursor ?? this.opts.showCursor ?? true;
+    if (mergedShow === false) return;
 
     await this.page.evaluate(() => {
       const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
@@ -186,9 +183,13 @@ export class VCursorHelper {
   }
 
   private async resolveLocatorCenter(locator: Locator): Promise<Pos | null> {
-    const box = await locator.boundingBox();
-    if (box) {
-      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    try {
+      const box = await locator.boundingBox({ timeout: 2000 });
+      if (box) {
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      }
+    } catch {
+      // boundingBox timeout (element not found / detached) – fall through to evaluate fallback
     }
     // Fallback: getBoundingClientRect via evaluate
     try {
@@ -210,9 +211,15 @@ export class VCursorHelper {
     try {
       await this.page.evaluate((detail: Partial<VCursorGlobalShape>) => {
         const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
-        if (w.__VCURSOR__?.set) w.__VCURSOR__.set(detail);
-        else if (w.__VCURSOR__) Object.assign(w.__VCURSOR__, detail);
-        window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
+        if (w.__VCURSOR__?.set) {
+          // set() already dispatches __vcursor:update – do not dispatch again
+          w.__VCURSOR__.set(detail);
+        } else if (w.__VCURSOR__) {
+          Object.assign(w.__VCURSOR__, detail);
+          window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
+        } else {
+          window.dispatchEvent(new CustomEvent('__vcursor:update', { detail }));
+        }
       }, next as unknown as Record<string, unknown>);
     } catch {
       // ignore if page closed / navigation
@@ -222,7 +229,7 @@ export class VCursorHelper {
   async moveTo(
     locatorOrPos: Locator | Pos,
     opts?: VCursorOptions,
-  ): Promise<Pos> {
+  ): Promise<Pos | null> {
     const m = this.merged(opts);
     const steps = m.steps;
     const delayMs = m.delayMs;
@@ -230,22 +237,27 @@ export class VCursorHelper {
     const label = m.label;
 
     let dest: Pos | null = null;
-    let fallbackClickNeeded = false;
 
     if (isLocator(locatorOrPos)) {
       dest = await this.resolveLocatorCenter(locatorOrPos);
       if (!dest) {
-        // boundingBox null fallback – try direct click as spec says
-        // For moveTo we return sentinel and let caller decide; but we also attempt fallback click here
-        // To avoid double-click in click(), we mark fallback and still do native move if possible
-        fallbackClickNeeded = true;
-        // try to get any position via evaluate even if zero size – otherwise sentinel
+        // boundingBox null fallback – try getBoundingClientRect even if zero size
         try {
           const r = await locatorOrPos.evaluate((el: Element) => {
             const rect = (el as HTMLElement).getBoundingClientRect();
-            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, w: rect.width, h: rect.height };
           });
-          if (r) dest = { x: r.x, y: r.y };
+          if (r && typeof r.x === 'number' && typeof r.y === 'number') {
+            // Use even zero-size rect center; if rect is truly empty (0,0 with no viewport), keep as valid pos
+            // but if width/height are 0 and element is detached, treat as unresolved unless coordinates are meaningful
+            dest = { x: r.x, y: r.y };
+            // If rect is empty and off-screen, still consider unresolved if w/h are 0 and dest is 0,0 without real target
+            if (r.w === 0 && r.h === 0) {
+              // Double-check visibility – if still zero area, fallback to null sentinel
+              const isVisible = await locatorOrPos.isVisible().catch(() => false);
+              if (!isVisible) dest = null;
+            }
+          }
         } catch {
           dest = null;
         }
@@ -256,16 +268,14 @@ export class VCursorHelper {
           } catch {
             // ignore
           }
-          return { x: 0, y: 0 };
+          return null;
         }
       }
-      // if fallbackClickNeeded but we resolved dest, we still perform visual move then caller will click
-      void fallbackClickNeeded;
     } else {
       dest = locatorOrPos;
     }
 
-    if (!dest) return { x: 0, y: 0 };
+    if (!dest) return null;
 
     if (!showCursor) {
       await this.page.mouse.move(dest.x, dest.y, { steps });
@@ -273,23 +283,57 @@ export class VCursorHelper {
       return dest;
     }
 
-    await this.ensureCursorInjected();
+    await this.ensureCursorInjected(m);
 
-    const start = this.lastPos;
-
-    if (start) {
-      for (let i = 1; i <= steps; i++) {
-        const t = i / steps;
-        const x = start.x + (dest.x - start.x) * t;
-        const y = start.y + (dest.y - start.y) * t;
-        await this.page.mouse.move(x, y);
-        await this.syncVisual({ x, y, label, active: false, visible: true });
-        if (delayMs > 0) await this.page.waitForTimeout(delayMs);
+    // Resolve start position: prefer lastPos, otherwise current visual position, otherwise viewport center/start
+    let start: Pos | null = this.lastPos;
+    if (!start) {
+      try {
+        const cur = await this.page.evaluate(() => {
+          const w = window as unknown as { __VCURSOR__?: VCursorGlobalShape };
+          if (w.__VCURSOR__ && typeof w.__VCURSOR__.x === 'number' && typeof w.__VCURSOR__.y === 'number') {
+            return { x: w.__VCURSOR__.x, y: w.__VCURSOR__.y };
+          }
+          return null;
+        });
+        if (
+          cur &&
+          typeof cur.x === 'number' &&
+          typeof cur.y === 'number' &&
+          !(cur.x === -100 && cur.y === -100)
+        ) {
+          start = cur;
+        } else {
+          const vp = this.page.viewportSize();
+          if (vp) start = { x: vp.width / 2, y: vp.height / 2 };
+          else {
+            try {
+              const wh = await this.page.evaluate(() => ({
+                w: window.innerWidth,
+                h: window.innerHeight,
+              }));
+              if (wh && wh.w && wh.h) start = { x: wh.w / 2, y: wh.h / 2 };
+              else start = { x: 0, y: 0 };
+            } catch {
+              start = { x: 0, y: 0 };
+            }
+          }
+        }
+      } catch {
+        start = { x: 0, y: 0 };
       }
-    } else {
-      // First move – no interpolation, single move with visual sync
-      await this.page.mouse.move(dest.x, dest.y, { steps });
-      await this.syncVisual({ x: dest.x, y: dest.y, label, active: false, visible: true });
+      // If start equals dest exactly (e.g., dest is 0,0 and start is 0,0), keep start as is – loop will handle zero distance
+    }
+
+    // Ensure we have a valid start for interpolation
+    const effectiveStart: Pos = start ?? { x: 0, y: 0 };
+
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const x = effectiveStart.x + (dest.x - effectiveStart.x) * t;
+      const y = effectiveStart.y + (dest.y - effectiveStart.y) * t;
+      await this.page.mouse.move(x, y);
+      await this.syncVisual({ x, y, label, active: false, visible: true });
       if (delayMs > 0) await this.page.waitForTimeout(delayMs);
     }
 
@@ -303,9 +347,7 @@ export class VCursorHelper {
     const label = m.label ?? 'click';
 
     const pos = await this.moveTo(locator, { ...opts, label });
-    // If moveTo fallback already clicked (pos 0,0 sentinel), skip mouse down/up
-    const isSentinel = pos.x === 0 && pos.y === 0;
-    if (isSentinel) {
+    if (pos === null) {
       // moveTo already performed locator.click fallback – just ensure visual reset
       if (showCursor) await this.syncVisual({ active: false, label: undefined });
       return;
@@ -340,8 +382,7 @@ export class VCursorHelper {
     const label = m.label ?? 'dblclick';
 
     const pos = await this.moveTo(locator, { ...opts, label });
-    const isSentinel = pos.x === 0 && pos.y === 0;
-    if (isSentinel) {
+    if (pos === null) {
       try {
         await locator.dblclick({ timeout: 3000 });
       } catch {
@@ -401,7 +442,17 @@ export class VCursorHelper {
     const label = m.label ?? 'drag';
 
     const fromPos = await this.moveTo(from, { ...opts, label });
-    const isSentinel = fromPos.x === 0 && fromPos.y === 0;
+    if (fromPos === null) {
+      // moveTo could not resolve from locator – fallback to native dragTo regardless of showCursor
+      // Do not interpolate from 0,0
+      try {
+        await from.dragTo(to);
+      } catch {
+        // ignore
+      }
+      if (showCursor) await this.syncVisual({ active: false, label: undefined });
+      return;
+    }
     const toPos = await this.resolveLocatorCenter(to);
     if (!toPos) {
       // fallback: try direct drag via locator.dragTo
@@ -411,15 +462,6 @@ export class VCursorHelper {
         // ignore
       }
       if (showCursor) await this.syncVisual({ active: false, label: undefined });
-      return;
-    }
-
-    if (isSentinel && !showCursor) {
-      try {
-        await from.dragTo(to);
-      } catch {
-        // ignore
-      }
       return;
     }
 
@@ -516,7 +558,7 @@ export class VCursorHelper {
     const m = this.merged(opts);
     const showCursor = m.showCursor ?? true;
     if (showCursor) {
-      await this.ensureCursorInjected();
+      await this.ensureCursorInjected(m);
       if (m.label) await this.syncVisual({ label: m.label });
     }
     await this.page.mouse.wheel(0, deltaY);

@@ -264,9 +264,12 @@ export function VCursorProvider({
     setStateRaw((prev) => ({ ...prev, ...next }));
     if (typeof window !== 'undefined') {
       const w = window as unknown as { __VCURSOR__?: VCursorGlobal };
-      w.__VCURSOR__?.set(next);
-      // also dispatch for overlay listeners
-      window.dispatchEvent(new CustomEvent('__vcursor:update', { detail: next }));
+      if (w.__VCURSOR__?.set) {
+        // set() already dispatches __vcursor:update – avoid duplicate dispatch
+        w.__VCURSOR__.set(next);
+      } else {
+        window.dispatchEvent(new CustomEvent('__vcursor:update', { detail: next }));
+      }
     }
   }, []);
 
@@ -298,13 +301,14 @@ export function VCursorProvider({
         },
       } as VCursorGlobal;
     }
-    // keep global in sync with local state on mount
+    // keep global in sync with local state on mount (initial only)
     w.__VCURSOR__!.x = state.x;
     w.__VCURSOR__!.y = state.y;
     w.__VCURSOR__!.active = state.active;
     w.__VCURSOR__!.label = state.label;
     w.__VCURSOR__!.visible = state.visible;
-  }, [state]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only, state is initial
+  }, []);
 
   return (
     <VCursorContext.Provider value={{ state, setState }}>
