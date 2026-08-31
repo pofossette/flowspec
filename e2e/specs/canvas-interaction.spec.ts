@@ -52,6 +52,34 @@ test.describe('canvas-interaction', () => {
     const cursor = vCursor(page, { steps: 25, delayMs: 32, showCursor: !CI });
     const app = new AppPage(page, cursor);
 
+    // Persistence signals must be registered BEFORE navigation so the WebSocket
+    // created on page load is not missed (page.on('websocket') only fires for
+    // sockets created after the handler is attached). Attaching before goto
+    // captures framesent before drag.
+    let putSeen = false;
+    let wsPatchSeen = false;
+    const wsFrames: string[] = [];
+    await page.route('**/api/flow-spec/*', async (route) => {
+      if (route.request().method() === 'PUT') putSeen = true;
+      await route.continue();
+    });
+    page.on('websocket', (ws) => {
+      ws.on('framesent', (data: unknown) => {
+        try {
+          const raw: unknown = (data as { payload?: unknown })?.payload ?? data;
+          const txt = typeof raw === 'string' ? raw : String(raw);
+          if (txt.includes('"type":"patch"') || txt.includes('"patch"')) {
+            wsPatchSeen = true;
+            wsFrames.push(txt);
+          }
+        } catch {}
+      });
+    });
+    // Also handle websockets already connected before handler (edge case when
+    // using reuseExistingServer or context-level sockets): Playwright has no
+    // page.websockets() API, so pre-goto registration is the reliable fix; the
+    // check below is a no-op but documents the intent for future API changes.
+
     await page.goto(urlWithApi);
     await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir, 15_000).catch((e) => {
       console.warn('[e2e] waitForPreviewReady failed (non-fatal)', String(e));
@@ -87,27 +115,17 @@ test.describe('canvas-interaction', () => {
     });
     const canvasTarget = (await canvas.count()) > 0 ? canvas : page.getByTestId('flow-canvas');
 
-    // Capture persistence: PUT (fallback) and WS patch (primary). FlowMapCanvas now triggers onChange on position change (see adapter).
-    let putSeen = false;
-    let wsPatchSeen = false;
-    await page.route('**/api/flow-spec/*', async (route) => {
-      if (route.request().method() === 'PUT') putSeen = true;
-      await route.continue();
-    });
-    // Capture WebSocket patch frames (wsSend is primary when WS OPEN)
-    const wsFrames: string[] = [];
-    page.on('websocket', (ws) => {
-      ws.on('framesent', (data: unknown) => {
-        try {
-          const raw: unknown = (data as { payload?: unknown })?.payload ?? data;
-          const txt = typeof raw === 'string' ? raw : String(raw);
-          if (txt.includes('"type":"patch"') || txt.includes('"patch"')) {
-            wsPatchSeen = true;
-            wsFrames.push(txt);
-          }
-        } catch {}
-      });
-    });
+    // Snapshot file content before drag for strict filePersisted check
+    // (previous /\b\d+:\d+\b/ was true even before drag → false positive).
+    const demoPath = path.join(flowspecDir, 'demo.md');
+    let contentBefore = '';
+    let mtimeBefore = 0;
+    try {
+      if (fs.existsSync(demoPath)) {
+        contentBefore = fs.readFileSync(demoPath, 'utf-8');
+        mtimeBefore = fs.statSync(demoPath).mtimeMs;
+      }
+    } catch {}
     void wsFrames;
 
     // Perform drag: from node to canvas (will drag to canvas center)
@@ -130,16 +148,21 @@ test.describe('canvas-interaction', () => {
     // FlowMapCanvas position change now triggers onChange -> handleChange -> wsSend (or PUT fallback)
     // Assert at least one signal was observed; if neither, fall back to file check
     let filePersisted = false;
+    let contentAfter = '';
     try {
-      const demoPath = path.join(flowspecDir, 'demo.md');
       // Poll briefly for file to reflect new position (ws patch saves via saveSpecRaw on server)
       for (let i = 0; i < 10; i++) {
         if (fs.existsSync(demoPath)) {
-          const content = fs.readFileSync(demoPath, 'utf-8');
-          // After drag, x:y should be numeric (not null:null) for at least one node
-          // We check that file was touched recently or contains numeric coordinates
-          if (/\b\d+:\d+\b/.test(content) || content.includes('position')) {
-            // More precise: check that demo.md mtime changed after drag
+          contentAfter = fs.readFileSync(demoPath, 'utf-8');
+          let mtimeAfter = 0;
+          try {
+            mtimeAfter = fs.statSync(demoPath).mtimeMs;
+          } catch {}
+          const contentChanged = contentAfter !== contentBefore;
+          const mtimeChanged = mtimeAfter !== mtimeBefore && mtimeAfter !== 0;
+          // Strict: only count as persisted if content or mtime actually changed
+          // after drag. Previous /\b\d+:\d+\b/ was true even before drag → dead check.
+          if (contentChanged || mtimeChanged) {
             filePersisted = true;
             break;
           }
