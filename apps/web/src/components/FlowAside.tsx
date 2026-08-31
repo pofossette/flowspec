@@ -68,6 +68,7 @@ export function FlowAside(props: {
 
   return (
     <aside
+      data-testid="flow-aside"
       className="relative flex shrink-0 flex-col overflow-hidden border-l border-panel-line bg-panel-surface"
       style={{ width }}
     >

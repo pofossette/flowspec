@@ -14,6 +14,7 @@ export function LeftNav(props: {
   const { flowList, activeId, dir, menuCollapsed, onToggle, onSwitchFlow, onManage } = props;
   return (
     <nav
+      data-testid="left-nav"
       className={`flex shrink-0 flex-col border-r border-panel-line bg-panel-surface transition-all ${menuCollapsed ? 'w-[56px]' : 'w-[220px]'}`}
     >
       <div className="flex items-center justify-between px-2 py-2 border-b border-default-200 gap-1">

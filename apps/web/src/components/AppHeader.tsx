@@ -66,13 +66,13 @@ export function AppHeader(props: {
   const lockTimeText = locked ? formatLockTime(lockAcquiredAt) : '';
   return (
     <>
-      <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-panel-line bg-panel-surface px-4 py-3">
+      <header data-testid="app-header" className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-panel-line bg-panel-surface px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white font-bold text-sm">
             ⟁
           </div>
           <div>
-            <div className="font-semibold leading-none">{spec.title}</div>
+            <div data-testid="flow-title" className="font-semibold leading-none">{spec.title}</div>
             <div className="text-xs text-default-500">
               {id} · {dir} · {spec.nodes.length} 节点 · {spec.edges.length} 边
               {lockTimeText ? ` · 🔒 ${lockTimeText}` : ''}
@@ -120,16 +120,17 @@ export function AppHeader(props: {
           </Select>
           {locked ? (
             <Chip
+              data-testid="lock-banner"
               color={isOwnedByMe ? 'success' : 'warning'}
               variant="soft"
               size="sm"
               className="font-medium"
               title={lockTimeText}
             >
-              {isOwnedByMe ? '编辑中已锁定' : '已锁定'} · {lockHolder ?? ''}
+              {isOwnedByMe ? '编辑中已锁定' : '操作中已锁定'} · {lockHolder ?? ''}
             </Chip>
           ) : editMode ? (
-            <Chip color="success" variant="soft" size="sm">
+            <Chip data-testid="edit-banner" color="success" variant="soft" size="sm">
               编辑中
             </Chip>
           ) : (
@@ -148,6 +149,7 @@ export function AppHeader(props: {
             </Button>
           ) : null}
           <Button
+            data-testid="edit-toggle"
             size="sm"
             variant={editMode ? 'secondary' : 'primary'}
             onPress={onToggleEdit}
@@ -157,6 +159,7 @@ export function AppHeader(props: {
             {editMode ? '预览模式' : '编辑'}
           </Button>
           <Button
+            data-testid="save-button"
             size="sm"
             variant="secondary"
             onPress={onSave}

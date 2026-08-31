@@ -16,12 +16,15 @@ export function FlowTabs(props: {
   const { flowList, activeId, dir, collapsed, onSwitch } = props;
   if (collapsed) {
     return (
-      <div className="flex flex-col gap-1.5 p-1.5">
+      <div data-testid="flow-list" className="flex flex-col gap-1.5 p-1.5">
         {flowList.map((f) => {
           const active = f.id === activeId;
           return (
             <button
               key={f.id}
+              data-testid="flow-list-item"
+              data-flow-id={f.id}
+              data-active={active ? 'true' : 'false'}
               onClick={() => onSwitch(f.id)}
               title={`${f.title} (${f.id})`}
               className={`w-full rounded-lg px-2 py-2 text-[11px] font-medium border text-center transition-colors ${active ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30' : 'bg-white border-default-200 dark:bg-zinc-800'}`}
@@ -35,7 +38,7 @@ export function FlowTabs(props: {
     );
   }
   return (
-    <div className="flex flex-col gap-1.5 p-1.5">
+    <div data-testid="flow-list" className="flex flex-col gap-1.5 p-1.5">
       <div className="flex items-center gap-1.5 px-1 py-1 text-[11px] text-default-500">
         <span className="truncate flex-1">{dir}</span>
         <Chip size="sm" variant="soft">
@@ -54,6 +57,9 @@ export function FlowTabs(props: {
           return (
             <button
               key={f.id}
+              data-testid="flow-list-item"
+              data-flow-id={f.id}
+              data-active={active ? 'true' : 'false'}
               onClick={() => onSwitch(f.id)}
               title={`${f.title} (${f.id}) · ${f.path}`}
               className={`w-full text-left rounded-lg px-2.5 py-2 text-xs leading-4 border transition-colors ${active ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-700' : 'bg-white border-default-200 hover:border-default-300 dark:bg-zinc-800'}`}

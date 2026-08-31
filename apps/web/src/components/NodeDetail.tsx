@@ -89,7 +89,7 @@ export function NodeDetail(props: {
     [editorHeight]
   );
   return (
-    <div className="grid gap-4">
+    <div data-testid="node-detail" className="grid gap-4">
       <div className="flex flex-wrap gap-2">
         <Chip
           size="sm"
@@ -117,6 +117,7 @@ export function NodeDetail(props: {
       <TextField isDisabled={readOnly} className="grid gap-1.5">
         <Label className="text-xs font-medium">目标状态（节点标题）</Label>
         <Input
+          data-testid="node-title-input"
           value={label}
           onChange={(v) => {
             const toStr = (val: unknown): string => {
