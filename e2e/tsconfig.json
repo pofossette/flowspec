@@ -6,7 +6,7 @@
     "rootDir": ".",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["@playwright/test"],
+    "types": ["@playwright/test", "node"],
     "lib": ["ES2022", "DOM"],
     "noUnusedLocals": false,
     "noUnusedParameters": false
