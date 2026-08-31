@@ -1,7 +1,8 @@
 ---
 title: Demo MD
 rootId: root-1
-locked: true
+locked: false
+version: 1.0.0
 ---
 
 # Demo MD

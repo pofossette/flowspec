@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { pushCleanUrl } from '../utils/dir.js';
 import { usePreviewStore } from '../store/preview-store.js';
 
 export type FlowListEntry = { id: string; title: string; path: string; rootId: string };
@@ -37,11 +38,7 @@ export function useFlowList(opts: { dir: string; api: (p: string) => string; ini
     (nextId: string) => {
       setActiveId(nextId);
       setSelection(null);
-      try {
-        const u = new URL(window.location.href);
-        u.searchParams.set('id', nextId);
-        window.history.pushState(null, '', u.toString());
-      } catch {}
+      pushCleanUrl(nextId);
     },
     [setSelection]
   );
@@ -49,7 +46,8 @@ export function useFlowList(opts: { dir: string; api: (p: string) => string; ini
   React.useEffect(() => {
     if (flowList.length === 0) return;
     if (!flowList.some((f) => f.id === activeId)) {
-      handleSwitchFlow(flowList[0]?.id);
+      const fallback = flowList[0]?.id;
+      if (fallback) handleSwitchFlow(fallback);
     }
   }, [flowList, activeId, handleSwitchFlow]);
 

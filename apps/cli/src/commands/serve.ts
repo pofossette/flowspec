@@ -1,10 +1,12 @@
 import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findRepoRoot } from '@flowspec/registry';
 import type { Command } from 'commander';
-import { isAlive, pidFilePath, syncFromFilesystemSafe } from './shared.js';
+import { isAlive, pidFilePath, readPidFile, writePidFile } from './shared.js';
+import { syncFromFilesystemSafe } from './shared.js';
 
 export function registerServeCommand(flow: Command): void {
   flow
@@ -34,10 +36,15 @@ export function registerServeCommand(flow: Command): void {
       }
       if (fs.existsSync(pidPath)) {
         try {
-          const pid = Number.parseInt(fs.readFileSync(pidPath, 'utf-8').trim(), 10);
-          if (Number.isFinite(pid) && isAlive(pid)) {
+          const parsed = readPidFile(pidPath);
+          const pid = parsed?.pid;
+          if (pid && Number.isFinite(pid) && isAlive(pid)) {
             console.error(
-              JSON.stringify({ ok: false, error: `already running pid ${pid}`, pidPath }, null, 2)
+              JSON.stringify(
+                { ok: false, error: `already running pid ${pid}`, pidPath, info: parsed?.info ?? null },
+                null,
+                2
+              )
             );
             process.exitCode = 1;
             return;
@@ -68,7 +75,32 @@ export function registerServeCommand(flow: Command): void {
       });
       child.unref();
       if (child.pid) {
-        fs.writeFileSync(pidPath, `${String(child.pid)}\n`, 'utf-8');
+        const startedAtMs = Date.now();
+        const startedAt = new Date(startedAtMs).toISOString();
+        // 展示 URL 不暴露宿主完整目录：预览默认即 flowspec，地址栏仅保留简洁参数
+        const displayUrl = `http://${opts.host}:${port}/`;
+        const url = `http://${opts.host}:${port}/?dir=${encodeURIComponent(absoluteDir)}`;
+        const dirDisplay = path.basename(absoluteDir) || 'flowspec';
+        const apiUrl = `http://${opts.host}:${port}/api/flow-spec`;
+        const wsUrl = `ws://${opts.host}:${port}/ws/flow-spec/:id`;
+        const startedBy = `${process.env.USER ?? 'unknown'}@${os.hostname()}`;
+        writePidFile(pidPath, {
+          pid: child.pid,
+          port,
+          host: opts.host,
+          dir: absoluteDir,
+          dirDisplay,
+          url,
+          displayUrl,
+          apiUrl,
+          wsUrl,
+          startedAt,
+          startedAtMs,
+          startedBy,
+          nodeVersion: process.version,
+          pidPath,
+          argv: process.argv.slice(2),
+        });
         await new Promise((r) => setTimeout(r, 800));
         if (!isAlive(child.pid!)) {
           try {
@@ -84,19 +116,33 @@ export function registerServeCommand(flow: Command): void {
           process.exitCode = 1;
           return;
         }
-        const url = `http://${opts.host}:${port}/?dir=${encodeURIComponent(absoluteDir)}`;
         console.log(
           JSON.stringify(
-            { ok: true, pid: child.pid, pidPath, dir: absoluteDir, port, url },
+            {
+              ok: true,
+              pid: child.pid,
+              pidPath,
+              dir: absoluteDir,
+              dirDisplay,
+              port,
+              host: opts.host,
+              url,
+              displayUrl,
+              apiUrl,
+              wsUrl,
+              startedAt,
+              startedAtMs,
+              startedBy,
+            },
             null,
             2
           )
         );
         if (!opts.debug)
           console.log(
-            `flowspec serve started pid ${child.pid} at ${url} (logs hidden, use --debug to show)`
+            `flowspec serve started pid ${child.pid} at ${displayUrl} (logs hidden, use --debug to show)`
           );
-        else console.log(`flowspec serve (debug) pid ${child.pid} at ${url}`);
+        else console.log(`flowspec serve (debug) pid ${child.pid} at ${url} (display ${displayUrl})`);
       } else {
         console.error(JSON.stringify({ ok: false, error: 'failed to spawn daemon' }, null, 2));
         process.exitCode = 1;

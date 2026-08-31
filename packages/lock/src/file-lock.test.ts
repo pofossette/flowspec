@@ -63,7 +63,10 @@ describe('file-lock', () => {
     const specPath = resolveSpecPath('myflow', dir);
     expect(specPath.endsWith('myflow.md')).toBe(true);
     const lockPath = resolveLockPath('myflow', dir);
-    expect(lockPath).toBe(`${specPath}.lock`);
+    // 锁集中存储于隐藏目录 .flowspec/locks/，不再与文档同目录
+    expect(lockPath).toContain('.flowspec');
+    expect(lockPath.endsWith('myflow.lock')).toBe(true);
+    expect(lockPath).not.toBe(`${specPath}.lock`);
   });
 
   it('save and load spec as Markdown block', () => {

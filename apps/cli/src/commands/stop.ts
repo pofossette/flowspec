@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { findRepoRoot } from '@flowspec/registry';
 import type { Command } from 'commander';
-import { isAlive, pidFilePath } from './shared.js';
+import { isAlive, pidFilePath, readPidFile } from './shared.js';
 
 export function registerStopCommand(flow: Command): void {
   flow
@@ -32,19 +32,20 @@ export function registerStopCommand(flow: Command): void {
       }
       // 后续统一用 effectivePidPath 操作
       const pidPathEffective = effectivePidPath;
-      const raw = fs.readFileSync(pidPathEffective, 'utf-8').trim();
-      const pid = Number.parseInt(raw, 10);
-      if (!Number.isFinite(pid)) {
+      const parsed = readPidFile(pidPathEffective);
+      if (!parsed) {
         fs.unlinkSync(pidPathEffective);
         console.error(JSON.stringify({ ok: false, error: `corrupt pid file, removed` }, null, 2));
         process.exitCode = 1;
         return;
       }
+      const pid = parsed.pid;
+      const prevInfo = parsed.info ?? null;
       if (!isAlive(pid)) {
         fs.unlinkSync(pidPathEffective);
         console.log(
           JSON.stringify(
-            { ok: true, stopped: false, reason: 'stale pid, cleaned', pidPath: pidPathEffective },
+            { ok: true, stopped: false, reason: 'stale pid, cleaned', pid, pidPath: pidPathEffective, prevInfo },
             null,
             2
           )

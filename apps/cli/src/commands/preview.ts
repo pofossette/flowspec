@@ -26,14 +26,17 @@ export function registerPreviewCommand(flow: Command): void {
         const previewUrl = id
           ? `http://${opts.host}:${actualPort}/?id=${encodeURIComponent(id)}&dir=${encodeURIComponent(absoluteDir)}`
           : `http://${opts.host}:${actualPort}/`;
+        const displayPreviewUrl = id
+          ? `http://${opts.host}:${actualPort}/?id=${encodeURIComponent(id)}`
+          : `http://${opts.host}:${actualPort}/`;
         console.log(
           JSON.stringify(
-            { ok: true, previewUrl, id: id || null, dir: absoluteDir, port: actualPort },
+            { ok: true, previewUrl, displayPreviewUrl, id: id || null, dir: absoluteDir, port: actualPort },
             null,
             2
           )
         );
-        console.log(`FlowSpec preview at ${previewUrl}`);
+        console.log(`FlowSpec preview at ${displayPreviewUrl}`);
         console.log(`API: http://${opts.host}:${actualPort}/api/flow-spec/:id  (+ /lock)`);
         if (opts.open) {
           const { exec } = await import('node:child_process');

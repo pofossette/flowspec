@@ -101,16 +101,19 @@ export function useFlowActions(opts: {
 
   const handleUnlock = React.useCallback(async () => {
     try {
+      // 解锁按钮为二次确认后的强制解锁，等同于 CLI `flowspec unlock --force`，避免一方异常退出后持续拿锁
       const res = await fetch(
         api(
-          `/api/flow-spec/${encodeURIComponent(id)}/lock?dir=${encodeURIComponent(dir)}&holder=${encodeURIComponent(holder)}`
+          `/api/flow-spec/${encodeURIComponent(id)}/lock?dir=${encodeURIComponent(dir)}&holder=${encodeURIComponent(holder)}&force=true`
         ),
         {
           method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ holder, force: true }),
         }
       );
       if (!res.ok) throw new Error(await res.text());
-      setMessage('已解锁');
+      setMessage('已强制解锁');
       await fetchAll();
     } catch (e: unknown) {
       setMessage(`解锁失败: ${e instanceof Error ? e.message : String(e)}`);

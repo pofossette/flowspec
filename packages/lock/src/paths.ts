@@ -40,12 +40,52 @@ export function resolveSpecPath(id: string, flowspecDir = DEFAULT_DIR): string {
   return mdPath;
 }
 
-/** @deprecated Old `.lock` file path — kept for backward compat. */
+/** 查找仓库根（复用 registry 的逻辑）：向上查找 .git/pnpm-workspace.yaml */
+function findRepoRoot(start: string): string {
+  let cur = path.resolve(start);
+  for (let i = 0; i < 10; i++) {
+    if (fs.existsSync(path.join(cur, '.git'))) return cur;
+    if (fs.existsSync(path.join(cur, 'pnpm-workspace.yaml'))) return cur;
+    const parent = path.dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+  return path.resolve(start);
+}
+
+/** 隐藏目录 .flowspec（与 flowspec 文档同级的隐藏目录，自动 gitignore） */
+export function resolveHiddenDir(flowspecDir = DEFAULT_DIR): string {
+  const abs = path.resolve(flowspecDir);
+  if (path.basename(abs) === '.flowspec') return abs;
+  const repoRoot = findRepoRoot(abs);
+  // 若 flowspecDir 本身就是一个隔离的临时目录（无 .git 的 tmp），直接在其内部创建 .flowspec，保证测试隔离
+  if (repoRoot === abs) return path.join(abs, '.flowspec');
+  // 否则为正常仓库：hiddenDir 位于仓库根/.flowspec（与 flowspec 文档同级隐藏）
+  return path.join(repoRoot, '.flowspec');
+}
+
+/** 锁集中存储于 .flowspec/locks/<id>.lock，不污染文档目录且被 gitignore */
 export function resolveLockPath(id: string, flowspecDir = DEFAULT_DIR): string {
+  const hiddenDir = resolveHiddenDir(flowspecDir);
+  const locksDir = path.join(hiddenDir, 'locks');
+  const safeId = id.replace(/[\\/]/g, '__').replace(/\.md$|\.json$/g, '');
+  return path.join(locksDir, `${safeId}.lock`);
+}
+
+/** @deprecated 旧路径 `${specPath}.lock`，仅用于迁移兼容 */
+export function resolveLegacyLockPath(id: string, flowspecDir = DEFAULT_DIR): string {
   const specPath = resolveSpecPath(id, flowspecDir);
   return `${specPath}.lock`;
 }
 
 export function ensureFlowspecDir(flowspecDir = DEFAULT_DIR): void {
   fs.mkdirSync(path.resolve(flowspecDir), { recursive: true });
+}
+
+export function ensureHiddenDir(flowspecDir = DEFAULT_DIR): string {
+  const dir = resolveHiddenDir(flowspecDir);
+  fs.mkdirSync(dir, { recursive: true });
+  const locksDir = path.join(dir, 'locks');
+  fs.mkdirSync(locksDir, { recursive: true });
+  return dir;
 }

@@ -10,6 +10,7 @@ import { useFlowList } from './hooks/useFlowList.js';
 import { useFlowSync } from './hooks/useFlowSync.js';
 import { useThemeSync } from './hooks/useThemeSync.js';
 import { usePreviewStore } from './store/preview-store.js';
+import { cleanUrlDirParam, displayDir } from './utils/dir.js';
 
 function useQuery(): URLSearchParams {
   return React.useMemo(() => new URLSearchParams(window.location.search), []);
@@ -38,10 +39,18 @@ class ErrorBoundary extends React.Component<
 export default function App(): React.JSX.Element {
   const query = useQuery();
   const initialId = query.get('id') ?? 'demo';
-  const dir = query.get('dir') ?? 'flowspec';
+  const rawDir = query.get('dir') ?? 'flowspec';
+  // 内部仍用绝对/原始 dir 请求后端，展示层用 displayDir 避免暴露宿主完整目录
+  const dir = rawDir;
+  const dirDisplay = displayDir(rawDir);
   const holder = query.get('holder') ?? 'web:local';
   const apiBase = query.get('api') ?? '';
   const api = React.useCallback((p: string) => `${apiBase}${p}`, [apiBase]);
+
+  // 首次挂载即清理地址栏中的绝对 dir
+  React.useEffect(() => {
+    cleanUrlDirParam();
+  }, []);
 
   const { flowList, activeId, id, menuCollapsed, setMenuCollapsed, handleSwitchFlow, refresh } = useFlowList(
     { dir, api, initialId }
@@ -78,11 +87,25 @@ export default function App(): React.JSX.Element {
     readOnly,
     handleChange,
     handleSave,
+    handleUnlock,
     handleToggleEdit,
     handleAddNode,
     handleUpdateNode,
     handleUpdateEdge,
   } = useFlowActions({ api, id, dir, holder, fetchAll, wsSend });
+
+  // 访问不存在资源自动重定向到已存在 URL（workspace 优先，full 兜底）
+  React.useEffect(() => {
+    if (!error) return;
+    const isNotFound =
+      /404|not found|flowspec ".*?" not found/i.test(error) || error.includes('spec 404');
+    if (!isNotFound) return;
+    const fallback =
+      flowList[0]?.id ?? fullList[0]?.id ?? null;
+    if (fallback && fallback !== id) {
+      handleSwitchFlow(fallback);
+    }
+  }, [error, flowList, fullList, id, handleSwitchFlow]);
 
   React.useEffect(() => {
     (window as unknown as { __flowHandleSave?: typeof handleSave }).__flowHandleSave = handleSave; // lib type gap: window augmentation for e2e
@@ -98,12 +121,24 @@ export default function App(): React.JSX.Element {
         <span className="text-sm text-muted">加载中… {id}</span>
       </div>
     );
-  if (error)
+  if (error) {
+    const isNotFound =
+      /404|not found|flowspec ".*?" not found/i.test(error) || error.includes('spec 404');
+    // 若为 404 且已有可重定向目标，静默重定向而非展示错误页（避免用户感知宿主持完整目录）
+    if (isNotFound && (flowList[0]?.id ?? fullList[0]?.id)) {
+      return (
+        <div className="flex h-screen items-center justify-center gap-3">
+          <Spinner size="lg" />
+          <span className="text-sm text-muted">资源不存在，正重定向至 {flowList[0]?.id ?? fullList[0]?.id}…</span>
+        </div>
+      );
+    }
     return (
       <div className="p-6">
         <Card className="border-danger/20 bg-danger/5 p-6 text-danger">加载失败: {error}</Card>
       </div>
     );
+  }
   if (!spec || !draft) return <div className="p-6">无数据</div>;
   const isEmptyGraph = spec.nodes.length === 0;
 
@@ -113,18 +148,20 @@ export default function App(): React.JSX.Element {
         <AppHeader
           spec={spec}
           id={id}
-          dir={dir}
+          dir={dirDisplay}
           mode={mode}
           setMode={setMode}
           locked={locked}
           isOwnedByMe={isOwnedByMe}
           lockHolder={lockInfo?.holder ?? undefined}
+          lockAcquiredAt={lockInfo?.acquiredAt}
           editMode={editMode}
           readOnly={readOnly}
           saving={saving}
           onToggleEdit={() => void handleToggleEdit()}
           onSave={() => void handleSave()}
           onRefresh={() => void fetchAll()}
+          onUnlock={() => void handleUnlock()}
         />
         {message ? (
           <div className="border-b border-default-200 bg-default-50 px-4 py-2 text-sm text-default-600">
@@ -140,7 +177,7 @@ export default function App(): React.JSX.Element {
           <LeftNav
             flowList={flowList}
             activeId={activeId}
-            dir={dir}
+            dir={dirDisplay}
             menuCollapsed={menuCollapsed}
             onToggle={() => setMenuCollapsed((v) => !v)}
             onSwitchFlow={handleSwitchFlow}

@@ -8,11 +8,6 @@ export function DocNav(props: { draft: FlowSpec; readOnly: boolean }): React.JSX
   return (
     <div className="space-y-4 text-sm leading-6 text-default-500">
       <div className="font-semibold text-foreground">文档导航 · 点击即阅读原文</div>
-      <div className="text-xs bg-default-50 border border-default-200 rounded-lg p-3 leading-5">
-        本质：<b className="text-foreground">md 文档为本体</b>，`^^^block` 为块标识（短标题 +
-        元信息），正文在块内；点击图谱节点即展示对应章节的 markdown 原文 —{' '}
-        <b className="text-foreground">文档 + 优化</b>，而非纯流程图。
-      </div>
       <div className="grid gap-1.5 max-h-[45vh] overflow-auto pr-1">
         {draft.nodes.map((n) => (
           <button

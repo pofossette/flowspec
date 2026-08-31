@@ -1,15 +1,5 @@
 import type { FlowSpec } from '@flowspec/domain';
-import {
-  Button,
-  Card,
-  Chip,
-  Description,
-  Input,
-  Label,
-  Modal,
-  Separator,
-  TextField,
-} from '@heroui/react';
+import { Card, Chip, Description, Input, Label, Separator, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useEffectiveTheme, useThemeStore } from '../store/theme-store.js';
 import { BlockMarkdownEditor } from './BlockMarkdownEditor.js';
@@ -62,7 +52,6 @@ export function NodeDetail(props: {
     const n = saved ? Number(saved) : 300;
     return Number.isFinite(n) ? Math.min(720, Math.max(180, n)) : 300;
   });
-  const [fullscreen, setFullscreen] = React.useState(false);
   const onHeightMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
       const startY = e.clientY;
@@ -170,18 +159,7 @@ export function NodeDetail(props: {
       </Card>
 
       <div className="grid gap-1.5">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium">文档正文（飞书式块级编辑 · / 唤起菜单）</Label>
-          <Button
-            size="sm"
-            variant="tertiary"
-            className="h-6 px-2 text-xs"
-            onPress={() => setFullscreen(true)}
-            aria-label="全屏编辑"
-          >
-            ⛶ 全屏
-          </Button>
-        </div>
+        <Label className="text-xs font-medium">文档正文（块级编辑 · / 唤起菜单）</Label>
         <div
           className="relative flex flex-col rounded-lg border border-panel-line/60 bg-panel-surface dark:bg-zinc-900/30 overflow-hidden focus-within:border-default-300 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors"
           style={{ height: editorHeight }}
@@ -212,35 +190,6 @@ export function NodeDetail(props: {
         <div className="text-xs text-muted">已自动同步（WS 热更新），无需手动保存</div>
       ) : null}
       {readOnly ? <div className="text-xs text-muted">已锁定，仅预览 · 上方为原文渲染</div> : null}
-
-      <Modal isOpen={fullscreen} onOpenChange={(open) => !open && setFullscreen(false)}>
-        <Modal.Backdrop>
-          <Modal.Container size="full">
-            <Modal.Dialog className="flex h-[90vh] max-h-[90vh] flex-col overflow-hidden border border-panel-line bg-panel-surface shadow-panel">
-              <Modal.Header>
-                <Modal.Heading className="text-sm font-semibold">
-                  全屏编辑 · {node.label}
-                </Modal.Heading>
-              </Modal.Header>
-              <Modal.Body className="min-h-0 flex-1 overflow-auto p-4">
-                <BlockMarkdownEditor
-                  key={`node-${node.id}-fs`}
-                  value={content}
-                  onChange={readOnly ? undefined : (v) => setContent(v)}
-                  readOnly={readOnly}
-                  theme={effectiveTheme}
-                  placeholder="全屏块级编辑 · / 唤起菜单"
-                />
-              </Modal.Body>
-              <Modal.Footer className="justify-end">
-                <Button size="sm" variant="tertiary" onPress={() => setFullscreen(false)}>
-                  退出全屏
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
     </div>
   );
 }

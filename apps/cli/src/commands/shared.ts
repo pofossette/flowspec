@@ -32,6 +32,49 @@ export function isAlive(pid: number): boolean {
   }
 }
 
+export type ServePidInfo = {
+  pid: number;
+  port: number;
+  host: string;
+  dir: string;
+  dirDisplay: string;
+  url: string;
+  displayUrl: string;
+  apiUrl: string;
+  wsUrl: string;
+  startedAt: string;
+  startedAtMs: number;
+  startedBy: string;
+  nodeVersion: string;
+  pidPath: string;
+  argv: string[];
+};
+
+export function writePidFile(pidPath: string, info: ServePidInfo): void {
+  fs.mkdirSync(path.dirname(pidPath), { recursive: true });
+  fs.writeFileSync(pidPath, `${JSON.stringify(info, null, 2)}\n`, 'utf-8');
+}
+
+export function readPidFile(pidPath: string): { pid: number; info?: ServePidInfo } | null {
+  if (!fs.existsSync(pidPath)) return null;
+  const raw = fs.readFileSync(pidPath, 'utf-8').trim();
+  if (!raw) return null;
+  // 兼容旧格式：纯数字 pid
+  if (/^\d+$/.test(raw)) {
+    const pid = Number.parseInt(raw, 10);
+    return Number.isFinite(pid) ? { pid } : null;
+  }
+  try {
+    const j = JSON.parse(raw) as ServePidInfo & { pid?: number };
+    const pid = typeof j.pid === 'number' ? j.pid : Number.parseInt(String(j.pid), 10);
+    if (!Number.isFinite(pid)) return null;
+    return { pid, info: j as ServePidInfo };
+  } catch {
+    const pid = Number.parseInt(raw, 10);
+    return Number.isFinite(pid) ? { pid } : null;
+  }
+}
+
 export function resolveDir(cwd: string, dir: string): string {
   return path.isAbsolute(dir) ? path.resolve(dir) : path.resolve(cwd, dir);
 }

@@ -84,16 +84,22 @@ export async function createPreviewServer(
     await app.register(fastifyStatic, {
       root: distDir,
       prefix: '/',
-      wildcard: false,
+      wildcard: true,
       decorateReply: false,
+      list: false,
+      // lib type gap: fastify-static cacheControl/etag defaults; keep SPA cache friendly
     });
   }
 
-  // SPA fallback：若 fastify-static 未命中且为无扩展路径，返回 index.html
+  // SPA fallback：若 fastify-static 未命中且为无扩展路径，返回 index.html；静态资源缺失返回 404 避免 MIME 误判
   app.setNotFoundHandler((req, reply) => {
     const pathname = (req.url ?? '').split('?')[0] ?? '';
     if (pathname.startsWith('/api/') || pathname.startsWith('/ws/')) {
       return reply.code(404).send({ error: 'not found', pathname });
+    }
+    // 静态资源缺失直接 404，避免对 .js/.css 返回 html 导致 “Expected a JavaScript module but got text/html”
+    if (/\.(js|css|mjs|woff2?|ttf|png|jpg|jpeg|svg|json|map)$/i.test(pathname)) {
+      return reply.code(404).type('text/plain; charset=utf-8').send(`Not found: ${pathname}`);
     }
     if (distDir) {
       const filePath = path.join(distDir, 'index.html');

@@ -2,6 +2,9 @@ node_modules
 dist
 .flowspec/serve.pid
 .flowspec/*.pid
+.flowspec/*.lock
+.flowspec/locks/
+.flowspec/locks/*.lock
 .env
 .DS_Store
 apps/web/dist
