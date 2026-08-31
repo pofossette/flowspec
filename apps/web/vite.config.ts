@@ -41,11 +41,8 @@ export default defineConfig({
             if (id.includes('@heroui')) return 'vendor-heroui';
             if (id.includes('@xyflow')) return 'vendor-xyflow';
             if (id.includes('framer-motion')) return 'vendor-motion';
-            if (id.includes('react-dom') || id.includes('/react-dom/')) return 'vendor-react';
-            if (id.includes('/react/') && id.includes('node_modules/react')) return 'vendor-react';
-            if (id.includes('zustand')) return 'vendor-react';
             if (id.includes('zod')) return 'vendor-zod';
-            // 兜底大 vendor
+            // 其余 node_modules（含 react/react-dom/zustand/tailwind-merge/clsx/emoji-mart 等）统一归入 vendor，避免 vendor ↔ vendor-react 循环依赖导致的 TDZ (Cannot access 'ze' before initialization)
             return 'vendor';
           }
           // 业务分包：全屏编辑器 / 画布 单独 chunk 便于按需加载
