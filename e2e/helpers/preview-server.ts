@@ -7,19 +7,48 @@ const FALLBACK_PREVIEW_PORT = 5177;
 
 /**
  * Poll until the preview frontend (or flow serve) responds with 200.
- * Tries `GET <baseURL>/` and falls back to `/api/flow-spec/full?dir=...` style
- * health if needed. Resolves when any endpoint returns 2xx.
+ * Tries `GET /api/flow-spec/full?dir=...` (when `dir` is provided) and
+ * falls back to `GET /` — resolves when any endpoint returns 2xx.
+ *
+ * Backward-compatible overloads:
+ * - waitForPreviewReady(baseURL, timeoutMs?: number)
+ * - waitForPreviewReady(baseURL, dir?: string, timeoutMs?: number)
+ * - waitForPreviewReady(baseURL, opts?: { dir?: string; timeoutMs?: number })
  */
 export async function waitForPreviewReady(
   baseURL: string = DEFAULT_BASE_URL,
-  timeoutMs = 15_000,
+  dirOrOptsOrTimeout?: string | number | { dir?: string; timeoutMs?: number },
+  timeoutMsArg?: number,
 ): Promise<void> {
+  let dir: string | undefined;
+  let timeoutMs = 15_000;
+
+  if (typeof dirOrOptsOrTimeout === 'string') {
+    dir = dirOrOptsOrTimeout;
+    if (typeof timeoutMsArg === 'number') timeoutMs = timeoutMsArg;
+  } else if (typeof dirOrOptsOrTimeout === 'number') {
+    timeoutMs = dirOrOptsOrTimeout;
+  } else if (dirOrOptsOrTimeout && typeof dirOrOptsOrTimeout === 'object') {
+    dir = dirOrOptsOrTimeout.dir;
+    if (typeof dirOrOptsOrTimeout.timeoutMs === 'number') timeoutMs = dirOrOptsOrTimeout.timeoutMs;
+    // Allow third arg to override when opts object is used
+    if (typeof timeoutMsArg === 'number') timeoutMs = timeoutMsArg;
+  } else if (typeof timeoutMsArg === 'number') {
+    timeoutMs = timeoutMsArg;
+  }
+
   const deadline = Date.now() + timeoutMs;
   const intervalMs = 250;
   let lastError: unknown;
 
-  // Normalize: ensure no trailing slash duplication issues; fetch handles it.
-  const urls = [baseURL, `${baseURL.replace(/\/$/, '')}/`];
+  const normalizedBase = baseURL.replace(/\/$/, '');
+  const urls: string[] = [];
+  if (dir) {
+    urls.push(`${normalizedBase}/api/flow-spec/full?dir=${encodeURIComponent(dir)}`);
+  }
+  urls.push(baseURL);
+  const withSlash = `${normalizedBase}/`;
+  if (!urls.includes(withSlash)) urls.push(withSlash);
 
   while (Date.now() < deadline) {
     for (const url of urls) {
@@ -134,6 +163,8 @@ export async function startPreviewServer(
 
   // Wait for server to be ready (poll /api/flow-spec/full?dir=... or root)
   const baseURL = `http://127.0.0.1:${port}`;
+  const apiUrl = `${baseURL}/api/flow-spec/full?dir=${encodeURIComponent(dir)}`;
+  const pollUrls = [apiUrl, baseURL, `${baseURL}/`];
   const deadline = Date.now() + 15_000;
   let ready = false;
   let lastErr: unknown;
@@ -141,15 +172,19 @@ export async function startPreviewServer(
     if (child.exitCode !== null) {
       throw new Error(`preview server exited early with code ${child.exitCode}, stdout: ${stdout}`);
     }
-    try {
-      const res = await fetch(baseURL, { method: 'GET' });
-      if (res.ok) {
-        ready = true;
-        break;
+    for (const u of pollUrls) {
+      try {
+        const res = await fetch(u, { method: 'GET' });
+        if (res.ok) {
+          ready = true;
+          break;
+        }
+        lastErr = new Error(`GET ${u} -> ${res.status}`);
+      } catch (e) {
+        lastErr = e;
       }
-    } catch (e) {
-      lastErr = e;
     }
+    if (ready) break;
     await new Promise((r) => setTimeout(r, 250));
   }
   if (!ready) {

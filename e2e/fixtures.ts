@@ -14,7 +14,7 @@ export const test = base.extend<Fixtures>({
     await cleanup();
   },
   previewUrl: async ({ flowspecDir }, use) => {
-    await waitForPreviewReady('http://127.0.0.1:5174');
+    await waitForPreviewReady('http://127.0.0.1:5174', flowspecDir);
     await use(previewUrlFor(flowspecDir, 'demo', 'e2e-test'));
   },
 });
